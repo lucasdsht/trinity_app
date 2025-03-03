@@ -18,24 +18,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await Dio().post(
-        'https://your-api.com/api/login',
+        'http://10.0.2.2:8000/auth/login',
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,
         },
       );
 
-      if (response.statusCode == 200) {
-        await TokenService.saveToken(response.data["token"]);
+      if (response.statusCode == 200 && response.data.containsKey("access_token")) {
+        await TokenService.saveToken(response.data["access_token"]);
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Invalid Credentials"))
+            const SnackBar(content: Text("Invalid Credentials"))
         );
       }
-    } catch (e) {
+    } on DioException catch (e) {
+      String errorMessage = "Login Failed";
+      if (e.response != null) {
+        errorMessage = "Error ${e.response!.statusCode}: ${e.response!.statusMessage}";
+      } else {
+        errorMessage = "Network Error: ${e.message}";
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login Failed: ${e.toString()}"))
+          SnackBar(content: Text(errorMessage))
       );
     } finally {
       setState(() => _isLoading = false);
@@ -45,20 +52,34 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Login")),
+      appBar: AppBar(title: const Text("Login")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: _emailController, decoration: InputDecoration(labelText: "Email")),
-            TextField(controller: _passwordController, decoration: InputDecoration(labelText: "Password"), obscureText: true),
-            SizedBox(height: 20),
-            _isLoading ? CircularProgressIndicator() : ElevatedButton(onPressed: _login, child: Text("Login")),
-            TextButton(onPressed: () => Navigator.pushNamed(context, "/register"), child: Text("Register")),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: "Password"),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+              onPressed: _login,
+              child: const Text("Login"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, "/register"),
+              child: const Text("Register"),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
