@@ -1,9 +1,8 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:trinity_app/screens/productdetail_screen.dart';
 import '../api/token_service.dart';
-import 'cart.screen.dart';
+import 'cart_screen.dart';
 
 class ProductScreen extends StatefulWidget {
   @override
@@ -200,12 +199,12 @@ class _ProductScreenState extends State<ProductScreen> {
                 children: [
                   ElevatedButton(
                     onPressed: _currentPage > 0 ? _prevPage : null,
-                    child: const Text("Précédent"),
+                    child: const Icon(Icons.arrow_back),
                   ),
                   Text("Page ${_currentPage + 1} / ${(_filteredProducts.length / _itemsPerPage).ceil()}"),
                   ElevatedButton(
                     onPressed: (_currentPage + 1) * _itemsPerPage < _filteredProducts.length ? _nextPage : null,
-                    child: const Text("Suivant"),
+                    child: const Icon(Icons.arrow_forward_rounded),
                   ),
                 ],
               ),
@@ -243,8 +242,18 @@ class _ProductScreenState extends State<ProductScreen> {
                       product["name"],
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Column(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailScreen(product: product),
+                        ),
+                      );
+                    },
+                    subtitle:
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+
                       children: [
                         Text("${product["brand"]} - \$${product["price"].toStringAsFixed(2)}"),
                         const SizedBox(height: 4),
