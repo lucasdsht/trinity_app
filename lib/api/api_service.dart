@@ -4,7 +4,7 @@ import 'token_service.dart';
 class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: "localhost:8000/",
+      baseUrl: "192.168.27.66:8000/",
       connectTimeout: Duration(seconds: 10),
       receiveTimeout: Duration(seconds: 10),
     ),
@@ -44,4 +44,3 @@ class ApiService {
     return await _dio.delete(path);
   }
 }
-

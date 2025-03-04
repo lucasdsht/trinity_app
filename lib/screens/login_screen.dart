@@ -18,32 +18,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await Dio().post(
-        'http://10.0.2.2:8000/auth/login',
+        'http://localhost:8000/auth/login',
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,
         },
       );
 
-      if (response.statusCode == 200 && response.data.containsKey("access_token")) {
+      if (response.statusCode == 200 &&
+          response.data.containsKey("access_token")) {
         await TokenService.saveToken(response.data["access_token"]);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => HomeScreen()));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Invalid Credentials"))
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Invalid Credentials")));
       }
     } on DioException catch (e) {
       String errorMessage = "Login Failed";
       if (e.response != null) {
-        errorMessage = "Error ${e.response!.statusCode}: ${e.response!.statusMessage}";
+        errorMessage =
+            "Error ${e.response!.statusCode}: ${e.response!.statusMessage}";
       } else {
         errorMessage = "Network Error: ${e.message}";
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage))
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -70,9 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-              onPressed: _login,
-              child: const Text("Login"),
-            ),
+                    onPressed: _login,
+                    child: const Text("Login"),
+                  ),
             TextButton(
               onPressed: () => Navigator.pushNamed(context, "/register"),
               child: const Text("Register"),
