@@ -3,6 +3,7 @@ import 'api/token_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/product_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,10 +22,12 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Auth',
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: initialRoute,
+      debugShowCheckedModeBanner: false,
       routes: {
         "/login": (context) => LoginScreen(),
         "/register": (context) => RegisterScreen(),
         "/home": (context) => HomeScreen(),
+        "/product": (context) => ProductScreen(),
       },
     );
   }
