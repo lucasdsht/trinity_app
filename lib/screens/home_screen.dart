@@ -1,58 +1,66 @@
 import 'package:flutter/material.dart';
 import '../api/token_service.dart';
+import './test.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
   Future<void> logout(BuildContext context) async {
     await TokenService.removeToken();
     Navigator.pushReplacementNamed(context, "/login");
   }
 
+  void _onItemTapped(int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, "/product");
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, "/scanner");
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, "/cart");
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Home")),
-      body: Align(
-        alignment: Alignment.bottomCenter,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return MyScaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ElevatedButton(
-              onPressed: () => logout(context),
-              child: const Text("Logout"),
+            // Section "Produits Conseillés"
+            const Text(
+              "🔹 Produits Conseillés",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            SizedBox(
-              height: 50,
+            const SizedBox(height: 10),
+            // Voir pour afficher les produits conseillés
+            const SizedBox(height: 20),
+
+            // Section "Produits en Promotion"
+            const Text(
+              "🔥 Produits en Promotion",
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red),
             ),
-            IconButton(
-                onPressed: () => logout(context),
-                icon: const Icon(Icons.account_circle_outlined)),
-            IconButton(
-                onPressed: () => logout(context),
-                icon: const Icon(Icons.shopping_cart)),
-            IconButton(
-                onPressed: () => logout(context),
-                icon: const Icon(Icons.document_scanner_outlined)),
-            IconButton(
-                onPressed: () => logout(context),
-                icon: const Icon(Icons.local_offer_outlined)),
-            IconButton(
-                onPressed: () => logout(context),
-                icon: const Icon(Icons.store_mall_directory_outlined)),
+            const SizedBox(height: 10),
+            // Voir pour afficher les produits en promotion
           ],
         ),
       ),
-    );
-  }
-}
-
-class Account extends StatelessWidget {
-  const Account({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: const Text('Hello, World!'),
+      selectedIndex: _selectedIndex,
+      onItemTapped: _onItemTapped,
     );
   }
 }
