@@ -10,6 +10,28 @@ class ProductScreen extends StatefulWidget {
   _ProductScreenState createState() => _ProductScreenState();
 }
 
+Color _getRestantColor(int stock, int quantityInCart) {
+  if ((stock - quantityInCart) > 10) {
+    return Colors.blue;
+  } else if ((stock - quantityInCart) > 0) {
+    return Colors.orange;
+  } else {
+    return Colors.red;
+  }
+}
+
+String _getRestantText(int stock, int quantityInCart) {
+  if ((stock - quantityInCart) > 10) {
+    return "Disponible";
+  } else if ((stock - quantityInCart) > 1) {
+    return "Plus que ${stock - quantityInCart} en stocks";
+  } else if ((stock - quantityInCart) > 0) {
+    return "Plus que 1 en stock";
+  } else {
+    return "Rupture de stock";
+  }
+}
+
 class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
   List<dynamic> _filteredProducts = [];
@@ -34,6 +56,8 @@ class _ProductScreenState extends State<ProductScreen> {
     _searchController.dispose();
     super.dispose();
   }
+
+
 
   Future<void> _fetchProducts() async {
     setState(() {
@@ -106,6 +130,28 @@ class _ProductScreenState extends State<ProductScreen> {
     }
   }
 
+  void _addToCart(int productId, int stock) {
+    setState(() {
+      if (!_cart.containsKey(productId)) {
+        _cart[productId] = 1;
+      } else if (_cart[productId]! < stock) {
+        _cart[productId] = _cart[productId]! + 1;
+      }
+    });
+  }
+
+  void _removeFromCart(int productId) {
+    setState(() {
+      if (_cart.containsKey(productId)) {
+        if (_cart[productId]! > 1) {
+          _cart[productId] = _cart[productId]! - 1;
+        } else {
+          _cart.remove(productId);
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     int startIndex = _currentPage * _itemsPerPage;
@@ -146,7 +192,6 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
             ),
           ),
-          // Boutons de pagination sous la barre de recherche
           if (_filteredProducts.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -212,6 +257,24 @@ class _ProductScreenState extends State<ProductScreen> {
                         ),
                       ],
                     ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (quantityInCart > 0)
+                          IconButton(
+                            icon: const Icon(Icons.remove, color: Colors.red),
+                            onPressed: () => _removeFromCart(productId),
+                          ),
+                        Text("$quantityInCart"),
+                        if (quantityInCart < stock)
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Colors.green),
+                            onPressed: () => _addToCart(productId, stock),
+                          ),
+                        if (quantityInCart == stock)
+                          const SizedBox(width: 48),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -220,27 +283,5 @@ class _ProductScreenState extends State<ProductScreen> {
         ],
       ),
     );
-  }
-
-  Color _getRestantColor(int stock, int quantityInCart) {
-    if ((stock - quantityInCart) > 10) {
-      return Colors.blue;
-    } else if ((stock - quantityInCart) > 0) {
-      return Colors.orange;
-    } else {
-      return Colors.red;
-    }
-  }
-
-  String _getRestantText(int stock, int quantityInCart) {
-    if ((stock - quantityInCart) > 10) {
-      return "Disponible";
-    } else if ((stock - quantityInCart) > 1) {
-      return "Plus que ${stock - quantityInCart} en stocks";
-    } else if ((stock - quantityInCart) > 0) {
-      return "Plus que 1 en stock";
-    } else {
-      return "Rupture de stock";
-    }
   }
 }
