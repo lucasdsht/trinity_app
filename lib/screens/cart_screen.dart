@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'product_screen.dart';
 
 class CartScreen extends StatelessWidget {
   final Map<int, int> cart; // Produit ID -> Quantité
@@ -18,7 +19,22 @@ class CartScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Panier")),
+      appBar: AppBar(
+        title: const Text("Panier"),
+        automaticallyImplyLeading: false, // Désactive la flèche de retour
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                builder: (context) => ProductScreen(cart: cart),
+                )
+            );
+          },
+        ),
+      ),
+
       body: cartProducts.isEmpty
           ? const Center(child: Text("Votre panier est vide."))
           : Column(
@@ -44,7 +60,7 @@ class CartScreen extends StatelessWidget {
                     )
                         : const Icon(Icons.image),
                     title: Text(product["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text("Quantité: $quantity\nPrix: \$${(product["price"] * quantity).toStringAsFixed(2)}"),
+                    subtitle: Text("Quantité: $quantity\nPrix unité : ${product["price"]}€ \nPrix total: ${(product["price"] * quantity).toStringAsFixed(2)}€"),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {
@@ -60,7 +76,7 @@ class CartScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Text("Total: \$${totalPrice.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("Total: ${totalPrice.toStringAsFixed(2)}€", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () {

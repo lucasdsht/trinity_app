@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:trinity_app/screens/productdetail_screen.dart';
+import '../api/api_service.dart';
 import '../api/token_service.dart';
 import 'cart_screen.dart';
+import 'home_screen.dart';
 
 class ProductScreen extends StatefulWidget {
+  final Map<int, int> cart; // Produit ID -> Quantité
+  ProductScreen({required this.cart});
+
   @override
   _ProductScreenState createState() => _ProductScreenState();
 }
@@ -38,7 +43,7 @@ class _ProductScreenState extends State<ProductScreen> {
   String _errorMessage = "";
   TextEditingController _searchController = TextEditingController();
 
-  Map<int, int> _cart = {}; // Clé: ID produit, Valeur: quantité ajoutée
+  late Map<int, int> _cart; // Clé: ID produit, Valeur: quantité ajoutée
 
   int _currentPage = 0;
   final int _itemsPerPage = 10;
@@ -46,7 +51,9 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   void initState() {
     super.initState();
+    // Call _fetchProducts() in initState()
     _fetchProducts();
+    _cart = widget.cart;
     _searchController.addListener(_filterProducts);
   }
 
@@ -59,6 +66,7 @@ class _ProductScreenState extends State<ProductScreen> {
 
 
   Future<void> _fetchProducts() async {
+    // Initialisation de l'état de chargement et de l'erreur
     setState(() {
       _isLoading = true;
       _errorMessage = "";
@@ -75,7 +83,7 @@ class _ProductScreenState extends State<ProductScreen> {
       }
 
       final response = await Dio().get(
-        'http://10.0.2.2:8000/products',
+        'https://8050-163-5-3-17.ngrok-free.app/products',
         queryParameters: {"limit": 100},
         options: Options(
           headers: {"Authorization": "Bearer $token"},
@@ -163,6 +171,18 @@ class _ProductScreenState extends State<ProductScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Produits"),
+        automaticallyImplyLeading: false, // Désactive la flèche de retour
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HomeScreen(),
+                )
+            );
+          }
+    ),
         actions: [
           Text(_cart.length.toString()),
           IconButton(
@@ -255,7 +275,7 @@ class _ProductScreenState extends State<ProductScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
 
                       children: [
-                        Text("${product["brand"]} - \$${product["price"].toStringAsFixed(2)}"),
+                        Text("${product["brand"]} - ${product["price"].toStringAsFixed(2)}€"),
                         const SizedBox(height: 4),
                         Text(
                           _getRestantText(stock, quantityInCart),
