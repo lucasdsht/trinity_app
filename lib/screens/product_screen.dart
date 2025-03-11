@@ -83,7 +83,7 @@ class _ProductScreenState extends State<ProductScreen> {
       }
 
       final response = await Dio().get(
-        'https://8050-163-5-3-17.ngrok-free.app/products',
+        apiBaseUrl,
         queryParameters: {"limit": 100},
         options: Options(
           headers: {"Authorization": "Bearer $token"},

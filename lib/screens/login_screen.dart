@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:trinity_app/api/api_service.dart';
 import '../api/token_service.dart';
 import './home_screen.dart';
 
@@ -18,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await Dio().post(
-        'http://10.0.2.2:8000/auth/login',
+        apiBaseUrl+"/auth/login",
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,
