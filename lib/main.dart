@@ -9,9 +9,10 @@ import 'screens/navigation_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TokenService.removeToken();
   String? token = await TokenService.getToken();
 
-  runApp(MyApp(initialRoute: token != null ? "" : "/login"));
+  runApp(MyApp(initialRoute: token != null ? "/home" : "/login"));
 }
 
 class MyApp extends StatelessWidget {
@@ -25,13 +26,18 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
-      home: const NavigationExample(),
+      home: NavigationExample(
+        body: const HomeScreen(), // 🔥 Ajout du paramètre `body`
+      ),
       routes: {
-        "/login": (context) => LoginScreen(),
+        "/login": (context) => const LoginScreen(),
         "/register": (context) => RegisterScreen(),
-        "/home": (context) => HomeScreen(),
-        "/account": (context) => AccountScreen(),
-        "/setting": (context) => SettingScreen(),
+        "/home": (context) =>
+            NavigationExample(body: const HomeScreen()), // 🔥 Correction ici
+        "/account": (context) =>
+            NavigationExample(body: const AccountScreen()), // 🔥 Correction ici
+        "/setting": (context) =>
+            NavigationExample(body: const SettingScreen()), // 🔥 Correction ici
       },
     );
   }
