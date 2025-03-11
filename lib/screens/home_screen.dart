@@ -19,7 +19,8 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProductScreen(cart: {})), // Navigation vers la page des produits
+                  MaterialPageRoute(builder: (context) => ProductScreen(),
+                  )// Navigation vers la page des produits
                 );
               },
               child: const Text("Go to Products"),

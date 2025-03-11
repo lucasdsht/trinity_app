@@ -28,7 +28,7 @@ class CartScreen extends StatelessWidget {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                builder: (context) => ProductScreen(cart: cart),
+                builder: (context) => ProductScreen(),
                 )
             );
           },

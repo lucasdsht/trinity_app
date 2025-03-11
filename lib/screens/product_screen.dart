@@ -1,315 +1,295 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:trinity_app/screens/productdetail_screen.dart';
 import '../api/api_service.dart';
 import '../api/token_service.dart';
 import 'cart_screen.dart';
-import 'home_screen.dart';
+import 'productdetail_screen.dart';
 
 class ProductScreen extends StatefulWidget {
-  final Map<int, int> cart; // Produit ID -> Quantité
-  ProductScreen({required this.cart});
-
   @override
   _ProductScreenState createState() => _ProductScreenState();
 }
 
-Color _getRestantColor(int stock, int quantityInCart) {
-  if ((stock - quantityInCart) > 10) {
-    return Colors.blue;
-  } else if ((stock - quantityInCart) > 0) {
-    return Colors.orange;
-  } else {
-    return Colors.red;
-  }
-}
-
-String _getRestantText(int stock, int quantityInCart) {
-  if ((stock - quantityInCart) > 10) {
-    return "Disponible";
-  } else if ((stock - quantityInCart) > 1) {
-    return "Plus que ${stock - quantityInCart} en stocks";
-  } else if ((stock - quantityInCart) > 0) {
-    return "Plus que 1 en stock";
-  } else {
-    return "Rupture de stock";
-  }
-}
-
 class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
-  List<dynamic> _filteredProducts = [];
-  bool _isLoading = true;
-  String _errorMessage = "";
-  TextEditingController _searchController = TextEditingController();
-
-  late Map<int, int> _cart; // Clé: ID produit, Valeur: quantité ajoutée
-
-  int _currentPage = 0;
-  final int _itemsPerPage = 10;
+  Map<int, int> _tempCart = {}; // Product ID -> Quantity
+  Map<int, int> _cartItems = {}; // Product ID -> Item ID (for deletion)
+  int? _invoiceId;
 
   @override
   void initState() {
     super.initState();
-    // Call _fetchProducts() in initState()
     _fetchProducts();
-    _cart = widget.cart;
-    _searchController.addListener(_filterProducts);
+    _createOrGetInvoice();
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-
 
   Future<void> _fetchProducts() async {
-    // Initialisation de l'état de chargement et de l'erreur
-    setState(() {
-      _isLoading = true;
-      _errorMessage = "";
-    });
-
     try {
       String? token = await TokenService.getToken();
-      if (token == null) {
-        setState(() {
-          _errorMessage = "No token found, please login.";
-          _isLoading = false;
-        });
-        return;
-      }
+      if (token == null) return;
 
       final response = await Dio().get(
-        apiBaseUrl,
-        queryParameters: {"limit": 100},
-        options: Options(
-          headers: {"Authorization": "Bearer $token"},
-        ),
+        '$apiBaseUrl/products/',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 
       if (response.statusCode == 200) {
         setState(() {
           _products = response.data;
-          _filteredProducts = _products;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = "Failed to load products";
-          _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Error: ${e.toString()}";
-        _isLoading = false;
-      });
+      print("Erreur de chargement des produits: $e");
     }
   }
 
-  void _filterProducts() {
-    String query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredProducts = _products.where((product) {
-        String name = product["name"].toString().toLowerCase();
-        return name.contains(query);
-      }).toList();
-      _currentPage = 0; // Réinitialiser la page après filtrage
-    });
-  }
+  Future<void> _createOrGetInvoice() async {
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return;
 
-  void _nextPage() {
-    if ((_currentPage + 1) * _itemsPerPage < _filteredProducts.length) {
-      setState(() {
-        _currentPage++;
-      });
-    }
-  }
+      final dio = Dio();
+      final getResponse = await dio.get(
+        '$apiBaseUrl/invoices/?user_id=1',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
 
-  void _prevPage() {
-    if (_currentPage > 0) {
-      setState(() {
-        _currentPage--;
-      });
-    }
-  }
-
-  void _addToCart(int productId, int stock) {
-    setState(() {
-      if (!_cart.containsKey(productId)) {
-        _cart[productId] = 1;
-      } else if (_cart[productId]! < stock) {
-        _cart[productId] = _cart[productId]! + 1;
+      if (getResponse.statusCode == 200 && getResponse.data.isNotEmpty) {
+        _invoiceId = getResponse.data[0]["id"];
+      } else {
+        final postResponse = await dio.post(
+          '$apiBaseUrl/invoices/',
+          data: {"user_id": 1, "total_amount": 0, "payment_status": "PENDING"},
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+        _invoiceId = postResponse.data["id"];
       }
+
+      if (_invoiceId != null) {
+        _fetchCartItems();
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération de la facture: $e");
+    }
+  }
+
+  Future<void> _fetchCartItems() async {
+    if (_invoiceId == null) return;
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return;
+
+      final response = await Dio().get(
+        '$apiBaseUrl/invoices/items/$_invoiceId',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _tempCart.clear();
+          _cartItems.clear();
+          for (var item in response.data) {
+            int productId = item["product_id"];
+            int quantity = item["quantity"];
+            int itemId = item["id"];
+            _tempCart[productId] = quantity;
+            _cartItems[productId] = itemId;
+          }
+        });
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération des items du panier: $e");
+    }
+  }
+
+  void _addToTempCart(int productId) {
+    setState(() {
+      _tempCart[productId] = (_tempCart[productId] ?? 0) + 1;
     });
   }
 
-  void _removeFromCart(int productId) {
-    setState(() {
-      if (_cart.containsKey(productId)) {
-        if (_cart[productId]! > 1) {
-          _cart[productId] = _cart[productId]! - 1;
+  void _removeFromTempCart(int productId) {
+    if (_tempCart.containsKey(productId)) {
+      setState(() {
+        if (_tempCart[productId]! > 1) {
+          _tempCart[productId] = _tempCart[productId]! - 1;
         } else {
-          _cart.remove(productId);
+          _tempCart.remove(productId);
         }
+      });
+    }
+  }
+
+  Future<void> _syncCartWithApi() async {
+    if (_invoiceId == null) return;
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return;
+
+      final dio = Dio();
+
+      // Supprimer tous les produits du panier avant de re-synchroniser
+      for (var entry in _cartItems.entries) {
+        await dio.delete(
+          '$apiBaseUrl/invoices/items/${entry.value}',
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
       }
-    });
+
+      // Ajouter les nouveaux produits
+      for (var entry in _tempCart.entries) {
+        await dio.post(
+          '$apiBaseUrl/invoices/items/',
+          data: {
+            "invoice_id": _invoiceId,
+            "product_id": entry.key,
+            "quantity": entry.value,
+            "price_per_unit": _products.firstWhere((p) => p["id"] == entry.key)["price"],
+          },
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+      }
+
+      // Recharger les produits du panier après synchronisation
+      _fetchCartItems();
+    } catch (e) {
+      print("Erreur de synchronisation du panier: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncCartWithApi();
+    super.dispose();
+  }
+
+  Color _getRestantColor(int stock, int quantityInCart) {
+    if ((stock - quantityInCart) > 10) {
+      return Colors.blue;
+    } else if ((stock - quantityInCart) > 0) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  String _getRestantText(int stock, int quantityInCart) {
+    if ((stock - quantityInCart) > 10) {
+      return "Disponible";
+    } else if ((stock - quantityInCart) > 1) {
+      return "Plus que ${stock - quantityInCart} en stocks";
+    } else if ((stock - quantityInCart) > 0) {
+      return "Plus que 1 en stock";
+    } else {
+      return "Rupture de stock";
+    }
+  }
+
+  String _getStockStatus(int quantity) {
+    if (quantity == 0) {
+      return 'Rupture de stock';
+    } else if (quantity <= 5) {
+      return 'Plus que $quantity en stock';
+    } else {
+      return 'Disponible';
+    }
+  }
+
+  Color _getStockColor(int quantity) {
+    if (quantity == 0) {
+      return Colors.red;
+    } else if (quantity <= 5) {
+      return Colors.orange;
+    } else {
+      return Colors.blue;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    int startIndex = _currentPage * _itemsPerPage;
-    int endIndex = startIndex + _itemsPerPage;
-    List<dynamic> displayedProducts = _filteredProducts.sublist(
-      startIndex,
-      endIndex > _filteredProducts.length ? _filteredProducts.length : endIndex,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Produits"),
-        automaticallyImplyLeading: false, // Désactive la flèche de retour
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => HomeScreen(),
-                )
-            );
-          }
-    ),
         actions: [
-          Text(_cart.length.toString()),
           IconButton(
             icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
+            onPressed: () async {
+              await _syncCartWithApi();
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CartScreen(cart: _cart, products: _products),
+                  builder: (context) => CartScreen(cart: _tempCart, products: _products),
                 ),
               );
             },
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: "Rechercher un produit",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-              ),
-            ),
-          ),
-          if (_filteredProducts.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentPage > 0 ? _prevPage : null,
-                    child: const Icon(Icons.arrow_back),
-                  ),
-                  Text("Page ${_currentPage + 1} / ${(_filteredProducts.length / _itemsPerPage).ceil()}"),
-                  ElevatedButton(
-                    onPressed: (_currentPage + 1) * _itemsPerPage < _filteredProducts.length ? _nextPage : null,
-                    child: const Icon(Icons.arrow_forward_rounded),
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _errorMessage.isNotEmpty
-                ? Center(child: Text(_errorMessage))
-                : displayedProducts.isEmpty
-                ? const Center(child: Text("Aucun produit trouvé"))
-                : ListView.builder(
-              itemCount: displayedProducts.length,
-              itemBuilder: (context, index) {
-                final product = displayedProducts[index];
-                final int stock = product["stock_quantity"] ?? 0;
-                final int productId = product["id"];
-                final int quantityInCart = _cart[productId] ?? 0;
+      body: ListView.builder(
+        itemCount: _products.length,
+        itemBuilder: (context, index) {
+          final product = _products[index];
+          final int productId = product["id"];
+          final stockQuantity = product["stock_quantity"];
+          final stockStatus = _getRestantText(stockQuantity, _tempCart[productId] ?? 0);
+          final stockColor = _getRestantColor(stockQuantity, _tempCart[productId] ?? 0);
 
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: ListTile(
-                    leading: product["picture_url"] != null
-                        ? Image.network(
-                      product["picture_url"],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image),
-                    )
-                        : const Icon(Icons.image),
-                    title: Text(
-                      product["name"],
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductDetailScreen(product: product),
-                        ),
-                      );
-                    },
-                    subtitle:
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-
-                      children: [
-                        Text("${product["brand"]} - ${product["price"].toStringAsFixed(2)}€"),
-                        const SizedBox(height: 4),
-                        Text(
-                          _getRestantText(stock, quantityInCart),
-                          style: TextStyle(
-                            color: _getRestantColor(stock, quantityInCart),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (quantityInCart > 0)
-                          IconButton(
-                            icon: const Icon(Icons.remove, color: Colors.red),
-                            onPressed: () => _removeFromCart(productId),
-                          ),
-                        Text("$quantityInCart"),
-                        if (quantityInCart < stock)
-                          IconButton(
-                            icon: const Icon(Icons.add, color: Colors.green),
-                            onPressed: () => _addToCart(productId, stock),
-                          ),
-                        if (quantityInCart == stock)
-                          const SizedBox(width: 48),
-                      ],
-                    ),
+          return Card(
+            margin: EdgeInsets.all(8.0),
+            child: ListTile(
+              leading: product["picture_url"] != null
+                  ? Image.network(
+                product["picture_url"],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.broken_image),
+              )
+                  : const Icon(Icons.image),
+              title: Text(product["name"]),
+              onTap: () async {
+                await _syncCartWithApi();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailScreen(product: product),
                   ),
                 );
               },
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("${product["price"]}€"),
+                  Text(
+                    _getRestantText(stockQuantity, _tempCart[productId] ?? 0),
+                    style: TextStyle(color: _getRestantColor(stockQuantity, _tempCart[productId] ?? 0)),
+                  ),
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_tempCart.containsKey(productId) && _tempCart[productId]! > 0)
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: Colors.red),
+                    onPressed: (_tempCart[productId] ?? 0) > 0
+                        ? () => _removeFromTempCart(productId)
+                        : null,
+                  ),
+                  Text("${_tempCart[productId] ?? 0}"),
+                  if (stockQuantity > (_tempCart[productId] ?? 0))
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.green),
+                    onPressed: () => _addToTempCart(productId),
+                  ),
+                  if (stockQuantity <= (_tempCart[productId] ?? 0))
+                    const SizedBox(width: 48),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
