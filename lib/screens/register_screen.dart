@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -27,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushReplacementNamed(context, "/login");
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Registration Failed"))
+          const SnackBar(content: Text("Registration Failed"))
         );
       }
     } catch (e) {
@@ -42,16 +44,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Register")),
+      appBar: AppBar(title: const Text("Register")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: _emailController, decoration: InputDecoration(labelText: "Email")),
-            TextField(controller: _passwordController, decoration: InputDecoration(labelText: "Password"), obscureText: true),
-            SizedBox(height: 20),
-            _isLoading ? CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: Text("Register")),
-            TextButton(onPressed: () => Navigator.pushNamed(context, "/login"), child: Text("Already have an account? Login")),
+            TextField(controller: _emailController, decoration: const InputDecoration(labelText: "Email")),
+            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: "Password"), obscureText: true),
+            const SizedBox(height: 20),
+            _isLoading ? const CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: const Text("Register")),
+            TextButton(onPressed: () => Navigator.pushNamed(context, "/login"), child: const Text("Already have an account? Login")),
           ],
         ),
       ),

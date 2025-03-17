@@ -4,6 +4,8 @@ import '../api/token_service.dart';
 import './home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -27,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200 && response.data.containsKey("access_token")) {
         await TokenService.saveToken(response.data["access_token"]);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Invalid Credentials"))

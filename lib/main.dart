@@ -13,7 +13,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final String initialRoute;
-  MyApp({required this.initialRoute});
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +22,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: initialRoute,
       routes: {
-        "/login": (context) => LoginScreen(),
-        "/register": (context) => RegisterScreen(),
-        "/home": (context) => HomeScreen(),
+        "/login": (context) => const LoginScreen(),
+        "/register": (context) => const RegisterScreen(),
+        "/home": (context) => const HomeScreen(),
       },
     );
   }
