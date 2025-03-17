@@ -16,7 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final response = await Dio().post(
-        'https://your-api.com/api/register',
+        'http://localhost:8000/api/register',
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,
@@ -26,14 +26,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (response.statusCode == 201) {
         Navigator.pushReplacementNamed(context, "/login");
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Registration Failed"))
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Registration Failed")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}"))
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -47,15 +45,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: _emailController, decoration: InputDecoration(labelText: "Email")),
-            TextField(controller: _passwordController, decoration: InputDecoration(labelText: "Password"), obscureText: true),
+            TextField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: "Email")),
+            TextField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: "Password"),
+                obscureText: true),
             SizedBox(height: 20),
-            _isLoading ? CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: Text("Register")),
-            TextButton(onPressed: () => Navigator.pushNamed(context, "/login"), child: Text("Already have an account? Login")),
+            _isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(onPressed: _register, child: Text("Register")),
+            TextButton(
+                onPressed: () => Navigator.pushNamed(context, "/login"),
+                child: Text("Already have an account? Login")),
           ],
         ),
       ),
     );
   }
 }
-
