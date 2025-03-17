@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import '../api/token_service.dart';
-import 'cart_screen.dart';
 import 'productdetail_screen.dart';
-import 'home_screen.dart';
 
 class ProductScreen extends StatefulWidget {
   @override
@@ -13,16 +11,18 @@ class ProductScreen extends StatefulWidget {
 
 class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
+  List<dynamic> _filteredProducts = [];
   Map<int, int> _tempCart = {}; // Product ID -> Quantity
   Map<int, int> _cartItems = {}; // Product ID -> Item ID (for deletion)
+  TextEditingController _searchController = TextEditingController();
   int? _invoiceId;
-  
 
   @override
   void initState() {
     super.initState();
     _fetchProducts();
     _createOrGetInvoice();
+    _searchController.addListener(_filterProducts);
   }
 
   Future<void> _fetchProducts() async {
@@ -38,11 +38,21 @@ class _ProductScreenState extends State<ProductScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _products = response.data;
+          _filteredProducts = _products; // <-- Initialisation
         });
       }
     } catch (e) {
       print("Erreur de chargement des produits: $e");
     }
+  }
+
+  void _filterProducts() {
+    String query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredProducts = _products
+          .where((product) => product["name"].toLowerCase().contains(query))
+          .toList();
+    });
   }
 
   Future<void> _createOrGetInvoice() async {
@@ -126,7 +136,6 @@ class _ProductScreenState extends State<ProductScreen> {
     }
   }
 
-  //sycrnonise avec l'api
   Future<void> _syncCartWithApi() async {
     if (_invoiceId == null) return;
     try {
@@ -164,9 +173,10 @@ class _ProductScreenState extends State<ProductScreen> {
       print("Erreur de synchronisation du panier: $e");
     }
   }
-
   @override
   void dispose() {
+    _searchController.dispose();
+    super.dispose();
     _syncCartWithApi();
     super.dispose();
   }
@@ -196,10 +206,20 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: "Rechercher un produit...",
+            border: InputBorder.none,
+            icon: Icon(Icons.search),
+          ),
+        ),
+      ),
       body: ListView.builder(
-        itemCount: _products.length,
+        itemCount: _filteredProducts.length,
         itemBuilder: (context, index) {
-          final product = _products[index];
+          final product = _filteredProducts[index];
           final int productId = product["id"];
           final stockQuantity = product["stock_quantity"];
 
@@ -260,7 +280,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 ],
               ),
             ),
-            
+
           );
         },
       ),
@@ -275,7 +295,7 @@ class _ProductScreenState extends State<ProductScreen> {
               );
             }
           },
-          child: const Text("Commander"),
+          child: const Text("Enregister dans le panier"),
         ),
       ),
     );
