@@ -47,4 +47,3 @@ class ApiService {
     return await _dio.delete(path);
   }
 }
-
