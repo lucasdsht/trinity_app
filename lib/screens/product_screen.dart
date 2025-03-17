@@ -4,6 +4,7 @@ import '../api/api_service.dart';
 import '../api/token_service.dart';
 import 'cart_screen.dart';
 import 'productdetail_screen.dart';
+import 'home_screen.dart';
 
 class ProductScreen extends StatefulWidget {
   @override
@@ -59,7 +60,7 @@ class _ProductScreenState extends State<ProductScreen> {
       } else {
         final postResponse = await dio.post(
           '$apiBaseUrl/invoices/',
-          data: {"user_id": 1, "total_amount": 0, "payment_status": "PENDING"},
+          data: {"user_id": await TokenService.getUserIdFromToken(), "total_amount": 0, "payment_status": "PENDING"},
           options: Options(headers: {"Authorization": "Bearer $token"}),
         );
         _invoiceId = postResponse.data["id"];
@@ -185,30 +186,17 @@ class _ProductScreenState extends State<ProductScreen> {
     }
   }
 
-  String _getStockStatus(int quantity) {
-    if (quantity == 0) {
-      return 'Rupture de stock';
-    } else if (quantity <= 5) {
-      return 'Plus que $quantity en stock';
-    } else {
-      return 'Disponible';
-    }
-  }
-
-  Color _getStockColor(int quantity) {
-    if (quantity == 0) {
-      return Colors.red;
-    } else if (quantity <= 5) {
-      return Colors.orange;
-    } else {
-      return Colors.blue;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()));
+            }),
         title: const Text("Produits"),
         actions: [
           IconButton(
@@ -218,7 +206,7 @@ class _ProductScreenState extends State<ProductScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CartScreen(cart: _tempCart, products: _products),
+                  builder: (context) => CartScreen(),
                 ),
               );
             },
@@ -231,8 +219,6 @@ class _ProductScreenState extends State<ProductScreen> {
           final product = _products[index];
           final int productId = product["id"];
           final stockQuantity = product["stock_quantity"];
-          final stockStatus = _getRestantText(stockQuantity, _tempCart[productId] ?? 0);
-          final stockColor = _getRestantColor(stockQuantity, _tempCart[productId] ?? 0);
 
           return Card(
             margin: EdgeInsets.all(8.0),
