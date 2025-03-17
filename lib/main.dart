@@ -3,9 +3,11 @@ import 'api/token_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/product_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/setting_screen.dart';
 import 'screens/navigation_bar.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +34,7 @@ class MyApp extends StatelessWidget {
       routes: {
         "/login": (context) => const LoginScreen(),
         "/register": (context) => RegisterScreen(),
+        "/product": (context) => ProductScreen(),
         "/home": (context) =>
             NavigationExample(body: const HomeScreen()), // 🔥 Correction ici
         "/account": (context) =>
