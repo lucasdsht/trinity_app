@@ -16,6 +16,7 @@ class _ProductScreenState extends State<ProductScreen> {
   Map<int, int> _tempCart = {}; // Product ID -> Quantity
   Map<int, int> _cartItems = {}; // Product ID -> Item ID (for deletion)
   int? _invoiceId;
+  
 
   @override
   void initState() {
@@ -51,7 +52,7 @@ class _ProductScreenState extends State<ProductScreen> {
 
       final dio = Dio();
       final getResponse = await dio.get(
-        '$apiBaseUrl/invoices/?user_id=1',
+        '$apiBaseUrl/invoices/?user_id=${await TokenService.getUserIdFromToken()}',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 
@@ -60,7 +61,11 @@ class _ProductScreenState extends State<ProductScreen> {
       } else {
         final postResponse = await dio.post(
           '$apiBaseUrl/invoices/',
-          data: {"user_id": await TokenService.getUserIdFromToken(), "total_amount": 0, "payment_status": "PENDING"},
+          data: {
+            "user_id": await TokenService.getUserIdFromToken(),
+            "total_amount": 0,
+            "payment_status": "PENDING"
+          },
           options: Options(headers: {"Authorization": "Bearer $token"}),
         );
         _invoiceId = postResponse.data["id"];
@@ -121,6 +126,7 @@ class _ProductScreenState extends State<ProductScreen> {
     }
   }
 
+  //sycrnonise avec l'api
   Future<void> _syncCartWithApi() async {
     if (_invoiceId == null) return;
     try {
@@ -145,7 +151,8 @@ class _ProductScreenState extends State<ProductScreen> {
             "invoice_id": _invoiceId,
             "product_id": entry.key,
             "quantity": entry.value,
-            "price_per_unit": _products.firstWhere((p) => p["id"] == entry.key)["price"],
+            "price_per_unit":
+                _products.firstWhere((p) => p["id"] == entry.key)["price"],
           },
           options: Options(headers: {"Authorization": "Bearer $token"}),
         );
@@ -189,30 +196,6 @@ class _ProductScreenState extends State<ProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => HomeScreen()));
-            }),
-        title: const Text("Produits"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () async {
-              await _syncCartWithApi();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
       body: ListView.builder(
         itemCount: _products.length,
         itemBuilder: (context, index) {
@@ -225,13 +208,13 @@ class _ProductScreenState extends State<ProductScreen> {
             child: ListTile(
               leading: product["picture_url"] != null
                   ? Image.network(
-                product["picture_url"],
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.broken_image),
-              )
+                      product["picture_url"],
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image),
+                    )
                   : const Icon(Icons.image),
               title: Text(product["name"]),
               onTap: () async {
@@ -249,33 +232,51 @@ class _ProductScreenState extends State<ProductScreen> {
                   Text("${product["price"]}€"),
                   Text(
                     _getRestantText(stockQuantity, _tempCart[productId] ?? 0),
-                    style: TextStyle(color: _getRestantColor(stockQuantity, _tempCart[productId] ?? 0)),
+                    style: TextStyle(
+                        color: _getRestantColor(
+                            stockQuantity, _tempCart[productId] ?? 0)),
                   ),
                 ],
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_tempCart.containsKey(productId) && _tempCart[productId]! > 0)
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.red),
-                    onPressed: (_tempCart[productId] ?? 0) > 0
-                        ? () => _removeFromTempCart(productId)
-                        : null,
-                  ),
+                  if (_tempCart.containsKey(productId) &&
+                      _tempCart[productId]! > 0)
+                    IconButton(
+                      icon: const Icon(Icons.remove, color: Colors.red),
+                      onPressed: (_tempCart[productId] ?? 0) > 0
+                          ? () => _removeFromTempCart(productId)
+                          : null,
+                    ),
                   Text("${_tempCart[productId] ?? 0}"),
                   if (stockQuantity > (_tempCart[productId] ?? 0))
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.green),
-                    onPressed: () => _addToTempCart(productId),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.add, color: Colors.green),
+                      onPressed: () => _addToTempCart(productId),
+                    ),
                   if (stockQuantity <= (_tempCart[productId] ?? 0))
                     const SizedBox(width: 48),
                 ],
               ),
             ),
+            
           );
         },
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: () async {
+            await _syncCartWithApi();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Panier modifié !")),
+              );
+            }
+          },
+          child: const Text("Commander"),
+        ),
       ),
     );
   }

@@ -7,7 +7,7 @@ import 'screens/product_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/setting_screen.dart';
 import 'screens/navigation_bar.dart';
-
+import 'screens/cart_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,19 +28,21 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
-      home: NavigationExample(
+      home: NavigationBarWidget(
         body: const HomeScreen(), // 🔥 Ajout du paramètre `body`
       ),
       routes: {
         "/login": (context) => const LoginScreen(),
         "/register": (context) => RegisterScreen(),
-        "/product": (context) => ProductScreen(),
+        "/product": (context) => NavigationBarWidget(body: ProductScreen()),
         "/home": (context) =>
-            NavigationExample(body: const HomeScreen()), // 🔥 Correction ici
-        "/account": (context) =>
-            NavigationExample(body: const AccountScreen()), // 🔥 Correction ici
-        "/setting": (context) =>
-            NavigationExample(body: const SettingScreen()), // 🔥 Correction ici
+            NavigationBarWidget(body: const HomeScreen()), // 🔥 Correction ici
+        "/account": (context) => NavigationBarWidget(
+            body: const AccountScreen()), // 🔥 Correction ici
+        "/setting": (context) => NavigationBarWidget(
+            body: const SettingScreen()), // 🔥 Correction ici
+        "/cart": (context) =>
+            NavigationBarWidget(body: CartScreen()), // 🔥 Correction ici
       },
     );
   }

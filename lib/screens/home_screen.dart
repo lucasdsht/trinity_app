@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../api/token_service.dart';
+import '../api/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (token == null) return;
 
       final response = await Dio().get(
-        "http://10.0.2.2:8000/invoices/",
+        "$apiBaseUrl/invoices/",
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 
@@ -56,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final response = await Dio().get(
-        "http://10.0.2.2:8000/products/",
+        '$apiBaseUrl/products/',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 

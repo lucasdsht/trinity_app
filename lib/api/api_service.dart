@@ -1,13 +1,12 @@
 import 'package:dio/dio.dart';
 import 'token_service.dart';
 
-const String apiBaseUrl = "http://10.0.2.2:8000";
+const String apiBaseUrl = "http://10.0.2.2:8000"; // "http://10.0.2.2:8000";
 
 class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: apiBaseUrl,
-
       connectTimeout: Duration(seconds: 10),
       receiveTimeout: Duration(seconds: 10),
     ),

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../api/token_service.dart';
 
-class NavigationExample extends StatefulWidget {
+class NavigationBarWidget extends StatefulWidget {
   final Widget body;
 
-  const NavigationExample({super.key, required this.body});
+  const NavigationBarWidget({super.key, required this.body});
 
   @override
-  State<NavigationExample> createState() => _NavigationExampleState();
+  State<NavigationBarWidget> createState() => _NavigationBarWidgetState();
 }
 
-class _NavigationExampleState extends State<NavigationExample> {
+class _NavigationBarWidgetState extends State<NavigationBarWidget> {
   int currentPageIndex = 0;
 
   final List<String> routes = [

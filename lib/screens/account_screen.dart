@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:trinity_app/api/api_service.dart';
 import '../api/token_service.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -61,7 +62,7 @@ class _AccountScreenState extends State<AccountScreen> {
       }
 
       final response = await Dio().get(
-        "http://10.0.2.2:8000/users/$userId",
+        "$apiBaseUrl/users/$userId",
         options: Options(
           headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
         ),
@@ -107,7 +108,7 @@ class _AccountScreenState extends State<AccountScreen> {
       if (userId == null) return;
 
       final response = await Dio().put(
-        "http://10.0.2.2:8000/users/$userId",
+        "$apiBaseUrl/users/$userId",
         options: Options(
           headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
         ),
