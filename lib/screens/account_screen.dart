@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../api/token_service.dart';
 import 'package:dio/dio.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import '../api/token_service.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -12,7 +13,20 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
+  bool isEditing = false;
   String? errorMessage;
+  final _formKey = GlobalKey<FormState>();
+  String? originalEmail; // 🔥 Stocke l'email actuel pour la comparer
+
+  // Contrôleurs pour les champs modifiables
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController zipController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController countryController = TextEditingController();
 
   @override
   void initState() {
@@ -20,10 +34,25 @@ class _AccountScreenState extends State<AccountScreen> {
     _fetchUserData();
   }
 
+  /// 🔹 Récupère l'ID utilisateur depuis le token JWT
+  Future<int?> getUserIdFromToken() async {
+    String? token = await TokenService.getToken();
+    if (token == null) return null;
+
+    try {
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      return decodedToken["user_id"];
+    } catch (e) {
+      print("❌ Erreur de décodage du token: $e");
+      return null;
+    }
+  }
+
+  /// 🔹 Récupère les infos utilisateur via l'ID
   Future<void> _fetchUserData() async {
     try {
-      String? token = await TokenService.getToken();
-      if (token == null) {
+      int? userId = await getUserIdFromToken();
+      if (userId == null) {
         setState(() {
           errorMessage = "Utilisateur non connecté.";
           isLoading = false;
@@ -32,10 +61,9 @@ class _AccountScreenState extends State<AccountScreen> {
       }
 
       final response = await Dio().get(
-        "http://10.0.2.2:8000/users/",
-        queryParameters: {"limit": 5}, // 🔥 Mets ici l'URL correcte de ton API
+        "http://10.0.2.2:8000/users/$userId",
         options: Options(
-          headers: {"Authorization": "Bearer $token"},
+          headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
         ),
       );
 
@@ -43,6 +71,18 @@ class _AccountScreenState extends State<AccountScreen> {
         setState(() {
           userData = response.data;
           isLoading = false;
+
+          // Remplit les champs avec les infos actuelles
+          firstNameController.text = userData?['first_name'] ?? "";
+          lastNameController.text = userData?['last_name'] ?? "";
+          emailController.text = userData?['email'] ?? "";
+          phoneController.text = userData?['phone_number'] ?? "";
+          addressController.text = userData?['billing_address'] ?? "";
+          zipController.text = userData?['zip_code'] ?? "";
+          cityController.text = userData?['city'] ?? "";
+          countryController.text = userData?['country'] ?? "";
+
+          originalEmail = userData?['email']; // 🔥 Sauvegarde l'email actuel
         });
       } else {
         setState(() {
@@ -58,6 +98,82 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
+  /// 🔹 Met à jour les informations utilisateur
+  Future<void> _updateUserData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      int? userId = await getUserIdFromToken();
+      if (userId == null) return;
+
+      final response = await Dio().put(
+        "http://10.0.2.2:8000/users/$userId",
+        options: Options(
+          headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
+        ),
+        data: {
+          "first_name": firstNameController.text,
+          "last_name": lastNameController.text,
+          "email": emailController.text,
+          "phone_number": phoneController.text,
+          "billing_address": addressController.text,
+          "zip_code": zipController.text,
+          "city": cityController.text,
+          "country": countryController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          userData = response.data;
+          isEditing = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Informations mises à jour avec succès")),
+        );
+
+        // 🔥 Vérifie si l'email a changé
+        if (originalEmail != emailController.text) {
+          _logoutAndShowDialog();
+        }
+      } else {
+        setState(() {
+          errorMessage = "Impossible de mettre à jour les informations.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Erreur de mise à jour : ${e.toString()}";
+      });
+    }
+  }
+
+  /// 🔹 Déconnecte l'utilisateur et affiche un message
+  Future<void> _logoutAndShowDialog() async {
+    await TokenService.removeToken();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Email modifié"),
+          content: const Text(
+              "Votre email a été modifié. Veuillez vous reconnecter."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, "/login");
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 🔹 Déconnexion simple
   Future<void> _logout() async {
     await TokenService.removeToken();
     Navigator.pushReplacementNamed(context, "/login");
@@ -65,18 +181,17 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Mon Compte")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : errorMessage != null
-                ? Center(
-                    child: Text(errorMessage!,
-                        style: const TextStyle(color: Colors.red)))
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+              ? Center(
+                  child: Text(errorMessage!,
+                      style: const TextStyle(color: Colors.red)))
+              : Form(
+                  key: _formKey,
+                  child: ListView(
                     children: [
                       const Text(
                         "👤 Mon Profil",
@@ -84,53 +199,71 @@ class _AccountScreenState extends State<AccountScreen> {
                             fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
-
-                      // 🔥 Affichage des infos de l'utilisateur
-                      _buildUserInfo("Nom",
-                          "${userData?['first_name']} ${userData?['last_name']}"),
-                      _buildUserInfo("Email", userData?['email']),
-                      _buildUserInfo("Téléphone", userData?['phone_number']),
-                      _buildUserInfo("Adresse", userData?['billing_address']),
-                      _buildUserInfo("Code Postal", userData?['zip_code']),
-                      _buildUserInfo("Ville", userData?['city']),
-                      _buildUserInfo("Pays", userData?['country']),
-                      _buildUserInfo("ID", userData?['id'].toString()),
-
+                      _buildEditableField("Prénom", firstNameController),
+                      _buildEditableField("Nom", lastNameController),
+                      _buildEditableField("Email", emailController),
+                      _buildEditableField("Téléphone", phoneController),
+                      _buildEditableField("Adresse", addressController),
+                      _buildEditableField("Code Postal", zipController),
+                      _buildEditableField("Ville", cityController),
+                      _buildEditableField("Pays", countryController),
                       const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: _logout,
-                        icon: const Icon(Icons.logout),
-                        label: const Text("Se déconnecter"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _logout,
+                              icon: const Icon(Icons.logout),
+                              label: const Text("Se déconnecter"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                if (isEditing) {
+                                  _updateUserData();
+                                } else {
+                                  setState(() {
+                                    isEditing = true;
+                                  });
+                                }
+                              },
+                              icon: Icon(isEditing ? Icons.save : Icons.edit),
+                              label:
+                                  Text(isEditing ? "Enregistrer" : "Modifier"),
+                            ),
+                          ),
+                        ],
+                      )
                     ],
                   ),
-      ),
+                ),
     );
   }
 
-  // 🔥 Fonction pour construire chaque ligne d'information utilisateur
-  Widget _buildUserInfo(String label, String? value) {
-    return value != null && value.isNotEmpty
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
-              ),
-              const Divider(), // Ligne de séparation
-            ],
-          )
-        : const SizedBox.shrink(); // 🔥 Cache la section si la valeur est null
+  /// 🔹 Fonction pour créer un champ modifiable
+  Widget _buildEditableField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        TextFormField(
+          controller: controller,
+          enabled: isEditing,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+          validator: (value) =>
+              value == null || value.isEmpty ? "Ce champ est requis" : null,
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
   }
 }
