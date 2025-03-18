@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'product_screen.dart';
 import '../api/api_service.dart';
 import '../api/token_service.dart';
 
@@ -88,6 +87,25 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  Future<void> updateCartItem(int itemId, int quantity, int invoiceId, int productId, double pricePerUnit) async {
+    if (quantity < 1) {
+      removeFromCart(itemId);
+      return;
+    }
+    try {
+      await apiService.put('$apiBaseUrl/invoices/items/$itemId', {
+        "invoice_id": invoiceId,
+        "product_id": productId,
+        "quantity": quantity,
+        "price_per_unit": pricePerUnit
+      });
+
+      fetchCartItems();
+    } catch (e) {
+      print("Erreur lors de la mise à jour de l'article: $e");
+    }
+  }
+
   Future<void> removeFromCart(int itemId) async {
     try {
       Response response = await apiService.delete('$apiBaseUrl/invoices/items/$itemId');
@@ -105,75 +123,71 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Panier"),
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => ProductScreen()));
-            }),
-      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : cartItems.isEmpty
           ? const Center(child: Text("Votre panier est vide."))
           : Column(
         children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: cartItems.length,
-              itemBuilder: (context, index) {
-                final product = cartItems[index];
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: ListTile(
-                    leading: product["picture_url"] != null
-                        ? Image.network(
-                      product["picture_url"],
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
-                    )
-                        : const Icon(Icons.image),
-                    title: Text(product["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      "Quantité: ${product["quantity"]}\nPrix unité : ${product["price"]}€ \nPrix total: ${(double.parse(product["price"].toString()) * product["quantity"]).toStringAsFixed(2)}€",
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => removeFromCart(product["item_id"]),
-                    ),
+      Expanded(
+      child: ListView.builder(
+      itemCount: cartItems.length,
+        itemBuilder: (context, index) {
+          final product = cartItems[index];
+          return Card(
+            elevation: 4,
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: ListTile(
+              leading: product["picture_url"] != null
+                  ? Image.network(
+                product["picture_url"],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+              )
+                  : const Icon(Icons.image),
+              title: Text(product["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(
+                "Quantité: ${product["quantity"]}\nPrix unité : ${product["price"]}€ \nPrix total: ${(double.parse(product["price"].toString()) * product["quantity"]).toStringAsFixed(2)}€",
+              ),
+
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => removeFromCart(product["item_id"]),
                   ),
-                );
-              },
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: Colors.red),
+                    onPressed: () => updateCartItem(product["item_id"], product["quantity"] - 1, product["invoice_id"], product["product_id"], product["price_per_unit"]),
+                  ),
+                  Text("${product["quantity"]}"),
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.green),
+                    onPressed: () => updateCartItem(product["item_id"], product["quantity"] + 1, product["invoice_id"], product["product_id"], product["price_per_unit"]),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text(
-                  "Total: ${cartItems.fold<double>(0.0, (sum, item) => sum + (double.parse(item["price"].toString()) * item["quantity"])).toStringAsFixed(2)}€",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Commande cliquée !")),
-                    );
-                  },
-                  child: const Text("Commander"),
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
+    ),
+    Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+    children: [
+    Text("Total: ${cartItems.fold<double>(0.0, (sum, item) => sum + (double.parse(item["price"].toString()) * item["quantity"]))
+            .toStringAsFixed(2)}€",
+    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+    ],
+    ),
+    ),
+    ],
+    ),
     );
   }
 }

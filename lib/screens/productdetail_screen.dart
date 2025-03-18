@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import '../api/api_service.dart';
+import '../api/token_service.dart';
+
 
 class ProductDetailScreen extends StatelessWidget {
   final Map<String, dynamic> product;
 
   const ProductDetailScreen({Key? key, required this.product}) : super(key: key);
+
+
 
   Color QuantiteColor(int stock) {
     switch (stock) {
@@ -16,6 +22,88 @@ class ProductDetailScreen extends StatelessWidget {
     }
   }
 
+  Future<bool> isProductInCart(int productId, int invoiceId) async {
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return false;
+
+      final response = await Dio().get(
+        '$apiBaseUrl/invoices/items/$invoiceId',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> items = response.data;
+
+        // Vérifier si le produit est dans le panier avec une quantité >= 1
+        return items.any((item) => item["product_id"] == productId && item["quantity"] >= 1);
+      }
+    } catch (e) {
+      print("Erreur lors de la vérification du produit dans le panier: $e");
+    }
+
+    return false; // Retourne false en cas d'erreur
+  }
+
+  Future<int> createOrGetInvoice() async {
+    int invoiceId = 0;
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return 0;
+
+      final dio = Dio();
+      final getResponse = await dio.get(
+        '$apiBaseUrl/invoices/?user_id=${await TokenService.getUserIdFromToken()}',
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (getResponse.statusCode == 200 && getResponse.data.isNotEmpty) {
+        invoiceId = getResponse.data[0]["id"];
+        return invoiceId;
+      } else {
+        final postResponse = await dio.post(
+          '$apiBaseUrl/invoices/',
+          data: {
+            "user_id": await TokenService.getUserIdFromToken(),
+            "total_amount": 0,
+            "payment_status": "PENDING"
+          },
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+        invoiceId = postResponse.data["id"];
+        return invoiceId;
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération de la facture: $e");
+    }
+    return 0;
+  }
+
+  Future<void> _addToCart(int productId, double price, int invoiceId) async {
+    if (invoiceId == null) return;
+    try {
+      String? token = await TokenService.getToken();
+      if (token == null) return;
+
+      await Dio().post(
+        '$apiBaseUrl/invoices/items/',
+        data: {
+          "invoice_id": invoiceId,
+          "product_id": productId,
+          "quantity": 1,
+          "price_per_unit": price,
+        },
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+    } catch (e) {
+      print("Erreur d'ajout au panier: $e");
+    }
+  }
+
+  Future<void> ajouterAuPanier() async {
+      int id_invoice = await createOrGetInvoice();
+      await _addToCart(product["id"], product["price"], id_invoice);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,11 +156,42 @@ class ProductDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Retour"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if(Navigator.canPop(context)){
+                      Navigator.pop(context, true); // Revenir à la page précédente et signaler un changement
+                    }
+
+                  },
+                  child: const Text("Retour")
+                ),
+                FutureBuilder<int>(
+                  future: createOrGetInvoice(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    } else if (snapshot.hasError || !snapshot.hasData) {
+                      return const Text("Erreur");
+                    } else {
+                      return FutureBuilder<bool>(
+                          future: isProductInCart(product["id"], snapshot.data!),
+                          builder: (context, isInCartSnapshot) {
+                            return ElevatedButton(
+                              onPressed: isInCartSnapshot.data == true
+                                  ? null
+                                  : () async {
+                                      await _addToCart(product["id"], product["price"], snapshot.data!);
+                                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product))); // Rafraîchit la page
+                                    },
+                              child: Text(isInCartSnapshot.data == true ? "Déjà ajouté" : "Ajouter au panier"),
+                            );
+                          });
+                    }
+                  }),
+              ],
             ),
           ],
         ),
