@@ -108,7 +108,6 @@ class ProductDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(product["name"])),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import '../api/token_service.dart';
+import 'navigation_bar.dart';
 import 'productdetail_screen.dart';
 
 class ProductScreen extends StatefulWidget {
@@ -174,7 +175,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProductDetailScreen(product: product),
+                    builder: (context) => NavigationBarWidget(body:ProductDetailScreen(product: product)),
                   ),
                 );
               },
