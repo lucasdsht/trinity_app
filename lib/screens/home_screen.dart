@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../api/token_service.dart';
 import '../api/api_service.dart';
+import 'productdetail_screen.dart';
+import 'navigation_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -139,31 +141,42 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final product = products[index];
 
-        return Card(
-          elevation: 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 🔹 Image du produit (agrandie)
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child:
-                    _getProductImage(product["picture_url"], product["name"]),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NavigationBarWidget(
+                    body: ProductDetailScreen(product: product)),
               ),
-              // 🔹 Zone texte plus compacte
-              Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: Text(
-                  product["name"] ?? "Produit inconnu",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
+            );
+          },
+          child: Card(
+            elevation: 4,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 🔹 Image du produit
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
+                  child:
+                      _getProductImage(product["picture_url"], product["name"]),
                 ),
-              ),
-            ],
+                // 🔹 Nom du produit
+                Padding(
+                  padding: const EdgeInsets.all(6.0),
+                  child: Text(
+                    product["name"] ?? "Produit inconnu",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

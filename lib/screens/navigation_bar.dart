@@ -11,7 +11,7 @@ class NavigationBarWidget extends StatefulWidget {
 }
 
 class _NavigationBarWidgetState extends State<NavigationBarWidget> {
-  int currentPageIndex = 0;
+  int currentPageIndex = -1; // 🔥 -1 signifie aucune sélection par défaut
 
   final List<String> routes = [
     "/product",
@@ -19,17 +19,34 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
     "/cart",
   ];
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateCurrentIndex();
+  }
+
+  void _updateCurrentIndex() {
+    String? currentRoute = ModalRoute.of(context)?.settings.name;
+
+    if (currentRoute != null && routes.contains(currentRoute)) {
+      setState(() {
+        currentPageIndex = routes.indexOf(currentRoute);
+      });
+    } else {
+      setState(() {
+        currentPageIndex = -1; // ✅ Désactive la sélection dans la NavBar
+      });
+    }
+  }
+
   void _onItemTapped(int index) {
     String newRoute = routes[index];
 
-    if (ModalRoute.of(context)?.settings.name == newRoute) {
-      return;
-    }
+    if (ModalRoute.of(context)?.settings.name == newRoute) return;
 
     setState(() {
       currentPageIndex = index;
     });
-
     Navigator.pushReplacementNamed(context, newRoute);
   }
 
@@ -39,6 +56,9 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
     if (token == null) {
       Navigator.pushReplacementNamed(context, "/login");
     } else if (ModalRoute.of(context)?.settings.name != "/account") {
+      setState(() {
+        currentPageIndex = -1; // ✅ Désactive la sélection
+      });
       Navigator.pushNamedAndRemoveUntil(
           context, "/account", (route) => route.settings.name == "/home");
     }
@@ -50,6 +70,9 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
     if (token == null) {
       Navigator.pushReplacementNamed(context, "/login");
     } else if (ModalRoute.of(context)?.settings.name != "/setting") {
+      setState(() {
+        currentPageIndex = -1; // ✅ Désactive la sélection
+      });
       Navigator.pushNamedAndRemoveUntil(
           context, "/setting", (route) => route.settings.name == "/home");
     }
@@ -57,8 +80,6 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    String? currentRoute = ModalRoute.of(context)?.settings.name ?? "/product";
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trinity Shop'),
@@ -70,13 +91,15 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
                       context, "/home", (route) => false);
                 },
               )
-            : null, // 🔥 Cache la flèche si on est déjà sur HomeScreen
+            : null,
         actions: [
           IconButton(
             icon: Icon(
               Icons.account_circle,
               size: 35,
-              color: currentRoute == "/account" ? Colors.amber : Colors.grey,
+              color: ModalRoute.of(context)?.settings.name == "/account"
+                  ? Colors.amber
+                  : Colors.grey,
             ),
             onPressed: _onAccountTapped,
           ),
@@ -84,7 +107,9 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
             icon: Icon(
               Icons.settings,
               size: 35,
-              color: currentRoute == "/setting" ? Colors.amber : Colors.grey,
+              color: ModalRoute.of(context)?.settings.name == "/setting"
+                  ? Colors.amber
+                  : Colors.grey,
             ),
             onPressed: _onSettingsTapped,
           ),
@@ -92,23 +117,30 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
       ),
       body: widget.body,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: currentPageIndex,
+        selectedIndex:
+            currentPageIndex >= 0 ? currentPageIndex : 0, // ✅ Correction ici
         onDestinationSelected: _onItemTapped,
-        indicatorColor: Colors.transparent,
-        destinations: const <Widget>[
+        indicatorColor: Colors.amber.withOpacity(0.3),
+        destinations: [
           NavigationDestination(
-            selectedIcon: Icon(Icons.store_mall_directory_outlined, size: 35),
-            icon: Icon(Icons.store_mall_directory_outlined, size: 35),
+            selectedIcon:
+                Icon(Icons.store_mall_directory, size: 35, color: Colors.amber),
+            icon: Icon(Icons.store_mall_directory_outlined,
+                size: 35, color: Colors.grey),
             label: 'Produits',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.document_scanner_outlined, size: 35),
-            icon: Icon(Icons.document_scanner_outlined, size: 35),
+            selectedIcon:
+                Icon(Icons.document_scanner, size: 35, color: Colors.amber),
+            icon: Icon(Icons.document_scanner_outlined,
+                size: 35, color: Colors.grey),
             label: 'Scanner',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.shopping_cart_outlined, size: 35),
-            icon: Icon(Icons.shopping_cart_outlined, size: 35),
+            selectedIcon:
+                Icon(Icons.shopping_cart, size: 35, color: Colors.amber),
+            icon: Icon(Icons.shopping_cart_outlined,
+                size: 35, color: Colors.grey),
             label: 'Panier',
           ),
         ],

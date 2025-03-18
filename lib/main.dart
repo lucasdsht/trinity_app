@@ -8,6 +8,7 @@ import 'screens/account_screen.dart';
 import 'screens/setting_screen.dart';
 import 'screens/navigation_bar.dart';
 import 'screens/cart_screen.dart';
+import 'screens/order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         "/login": (context) => const LoginScreen(),
+        "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
         "/register": (context) => RegisterScreen(),
         "/product": (context) => NavigationBarWidget(body: ProductScreen()),
         "/home": (context) =>

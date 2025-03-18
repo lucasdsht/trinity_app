@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await Dio().post(
-        apiBaseUrl+"/auth/login",
+        apiBaseUrl + "/auth/login",
         data: {
           "email": _emailController.text.trim(),
           "password": _passwordController.text,

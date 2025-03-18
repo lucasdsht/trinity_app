@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:trinity_app/api/api_service.dart';
 import '../api/token_service.dart';
 
@@ -35,24 +34,10 @@ class _AccountScreenState extends State<AccountScreen> {
     _fetchUserData();
   }
 
-  /// 🔹 Récupère l'ID utilisateur depuis le token JWT
-  Future<int?> getUserIdFromToken() async {
-    String? token = await TokenService.getToken();
-    if (token == null) return null;
-
-    try {
-      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-      return decodedToken["user_id"];
-    } catch (e) {
-      print("❌ Erreur de décodage du token: $e");
-      return null;
-    }
-  }
-
   /// 🔹 Récupère les infos utilisateur via l'ID
   Future<void> _fetchUserData() async {
     try {
-      int? userId = await getUserIdFromToken();
+      int? userId = await TokenService.getUserIdFromToken();
       if (userId == null) {
         setState(() {
           errorMessage = "Utilisateur non connecté.";
@@ -104,7 +89,7 @@ class _AccountScreenState extends State<AccountScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      int? userId = await getUserIdFromToken();
+      int? userId = await TokenService.getUserIdFromToken();
       if (userId == null) return;
 
       final response = await Dio().put(

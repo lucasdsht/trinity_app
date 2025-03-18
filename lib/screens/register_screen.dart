@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:trinity_app/api/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -16,7 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final response = await Dio().post(
-        'http://localhost:8000/api/register',
+        '$apiBaseUrl/api/register',
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,

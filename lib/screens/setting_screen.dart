@@ -56,6 +56,20 @@ class _SettingScreenState extends State<SettingScreen> {
             secondary: const Icon(Icons.dark_mode, color: Colors.grey),
           ),
 
+          const Divider(), // 🔥 Séparateur visuel
+
+          /// 🔹 **Historique des commandes**
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.blue),
+            title: const Text("Historique des commandes"),
+            subtitle: const Text("Voir vos commandes passées"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+            onTap: () {
+              Navigator.pushNamed(context,
+                  "/order"); // 🔥 Redirection vers la page des commandes
+            },
+          ),
+
           /// 🔹 Section Aide
           ListTile(
             leading: const Icon(Icons.help_outline, color: Colors.green),
@@ -66,6 +80,8 @@ class _SettingScreenState extends State<SettingScreen> {
               Navigator.pushNamed(context, "/help");
             },
           ),
+
+          const Divider(), // 🔥 Séparateur visuel
 
           /// 🔹 Bouton de déconnexion
           const SizedBox(height: 20),
