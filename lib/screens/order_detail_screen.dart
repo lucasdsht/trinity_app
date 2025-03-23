@@ -42,6 +42,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         '$apiBaseUrl/invoices/items/${widget.order["id"]}', // Remplace par ton API
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
+      print("Réponse API Commandes : ${orderResponse.data}");
 
       if (orderResponse.statusCode != 200) {
         setState(() {

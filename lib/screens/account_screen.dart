@@ -16,9 +16,8 @@ class _AccountScreenState extends State<AccountScreen> {
   bool isEditing = false;
   String? errorMessage;
   final _formKey = GlobalKey<FormState>();
-  String? originalEmail; // 🔥 Stocke l'email actuel pour la comparer
+  String? originalEmail;
 
-  // Contrôleurs pour les champs modifiables
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -34,7 +33,6 @@ class _AccountScreenState extends State<AccountScreen> {
     _fetchUserData();
   }
 
-  /// 🔹 Récupère les infos utilisateur via l'ID
   Future<void> _fetchUserData() async {
     try {
       int? userId = await TokenService.getUserIdFromToken();
@@ -58,7 +56,6 @@ class _AccountScreenState extends State<AccountScreen> {
           userData = response.data;
           isLoading = false;
 
-          // Remplit les champs avec les infos actuelles
           firstNameController.text = userData?['first_name'] ?? "";
           lastNameController.text = userData?['last_name'] ?? "";
           emailController.text = userData?['email'] ?? "";
@@ -68,7 +65,7 @@ class _AccountScreenState extends State<AccountScreen> {
           cityController.text = userData?['city'] ?? "";
           countryController.text = userData?['country'] ?? "";
 
-          originalEmail = userData?['email']; // 🔥 Sauvegarde l'email actuel
+          originalEmail = userData?['email'];
         });
       } else {
         setState(() {
@@ -84,7 +81,6 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  /// 🔹 Met à jour les informations utilisateur
   Future<void> _updateUserData() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -120,7 +116,6 @@ class _AccountScreenState extends State<AccountScreen> {
               content: Text("Informations mises à jour avec succès")),
         );
 
-        // 🔥 Vérifie si l'email a changé
         if (originalEmail != emailController.text) {
           _logoutAndShowDialog();
         }
@@ -136,7 +131,6 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  /// 🔹 Déconnecte l'utilisateur et affiche un message
   Future<void> _logoutAndShowDialog() async {
     await TokenService.removeToken();
     showDialog(
@@ -159,7 +153,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  /// 🔹 Déconnexion simple
   Future<void> _logout() async {
     await TokenService.removeToken();
     Navigator.pushReplacementNamed(context, "/login");
@@ -234,7 +227,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  /// 🔹 Fonction pour créer un champ modifiable
   Widget _buildEditableField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

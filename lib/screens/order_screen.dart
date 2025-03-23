@@ -48,7 +48,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         queryParameters: {"user_id": userId},
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-
+      print("Réponse API Commandes : ${response.data}");
       if (response.statusCode == 200) {
         setState(() {
           orders = response.data; // Liste des commandes

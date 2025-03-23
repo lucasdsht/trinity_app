@@ -117,30 +117,40 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
       ),
       body: widget.body,
       bottomNavigationBar: NavigationBar(
-        selectedIndex:
-            currentPageIndex >= 0 ? currentPageIndex : 0, // ✅ Correction ici
+        selectedIndex: currentPageIndex < 0 ? 0 : currentPageIndex,
         onDestinationSelected: _onItemTapped,
-        indicatorColor: Colors.amber.withOpacity(0.3),
+        indicatorColor: currentPageIndex < 0
+            ? Colors.transparent
+            : Colors.amber.withOpacity(0.3),
         destinations: [
           NavigationDestination(
-            selectedIcon:
-                Icon(Icons.store_mall_directory, size: 35, color: Colors.amber),
-            icon: Icon(Icons.store_mall_directory_outlined,
-                size: 35, color: Colors.grey),
+            icon: Icon(
+              currentPageIndex == 0
+                  ? Icons.store_mall_directory
+                  : Icons.store_mall_directory_outlined,
+              size: 35,
+              color: currentPageIndex == 0 ? Colors.amber : Colors.grey,
+            ),
             label: 'Produits',
           ),
           NavigationDestination(
-            selectedIcon:
-                Icon(Icons.document_scanner, size: 35, color: Colors.amber),
-            icon: Icon(Icons.document_scanner_outlined,
-                size: 35, color: Colors.grey),
+            icon: Icon(
+              currentPageIndex == 1
+                  ? Icons.document_scanner
+                  : Icons.document_scanner_outlined,
+              size: 35,
+              color: currentPageIndex == 1 ? Colors.amber : Colors.grey,
+            ),
             label: 'Scanner',
           ),
           NavigationDestination(
-            selectedIcon:
-                Icon(Icons.shopping_cart, size: 35, color: Colors.amber),
-            icon: Icon(Icons.shopping_cart_outlined,
-                size: 35, color: Colors.grey),
+            icon: Icon(
+              currentPageIndex == 2
+                  ? Icons.shopping_cart
+                  : Icons.shopping_cart_outlined,
+              size: 35,
+              color: currentPageIndex == 2 ? Colors.amber : Colors.grey,
+            ),
             label: 'Panier',
           ),
         ],
