@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
       home: NavigationBarWidget(
-        body: const HomeScreen(), // 🔥 Ajout du paramètre `body`
+        body: const HomeScreen(),
       ),
       routes: {
         "/login": (context) => const LoginScreen(),
@@ -38,13 +38,13 @@ class MyApp extends StatelessWidget {
         "/register": (context) => RegisterScreen(),
         "/product": (context) => NavigationBarWidget(body: ProductScreen()),
         "/home": (context) =>
-            NavigationBarWidget(body: const HomeScreen()), // 🔥 Correction ici
+            NavigationBarWidget(body: const HomeScreen()),
         "/account": (context) => NavigationBarWidget(
-            body: const AccountScreen()), // 🔥 Correction ici
+            body: const AccountScreen()),
         "/setting": (context) => NavigationBarWidget(
-            body: const SettingScreen()), // 🔥 Correction ici
+            body: const SettingScreen()), 
         "/cart": (context) =>
-            NavigationBarWidget(body: CartScreen()), // 🔥 Correction ici
+            NavigationBarWidget(body: CartScreen()),
       },
     );
   }

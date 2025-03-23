@@ -9,10 +9,9 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
-  bool isDarkMode = false; // 🔥 Mode sombre activé/désactivé
-  bool notificationsEnabled = true; // 🔥 Notifications activées par défaut
+  bool isDarkMode = false;
+  bool notificationsEnabled = true;
 
-  /// 🔹 Fonction pour gérer la déconnexion
   Future<void> _logout() async {
     await TokenService.removeToken();
     Navigator.pushReplacementNamed(context, "/login");
@@ -29,8 +28,6 @@ class _SettingScreenState extends State<SettingScreen> {
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-
-          /// 🔹 Section Notifications
           SwitchListTile(
             title: const Text("Notifications"),
             subtitle: Text(notificationsEnabled ? "Activées" : "Désactivées"),
@@ -42,8 +39,6 @@ class _SettingScreenState extends State<SettingScreen> {
             },
             secondary: const Icon(Icons.notifications, color: Colors.orange),
           ),
-
-          /// 🔹 Section Mode Sombre
           SwitchListTile(
             title: const Text("Mode Sombre"),
             subtitle: Text(isDarkMode ? "Activé" : "Désactivé"),
@@ -55,22 +50,16 @@ class _SettingScreenState extends State<SettingScreen> {
             },
             secondary: const Icon(Icons.dark_mode, color: Colors.grey),
           ),
-
-          const Divider(), // 🔥 Séparateur visuel
-
-          /// 🔹 **Historique des commandes**
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.history, color: Colors.blue),
             title: const Text("Historique des commandes"),
             subtitle: const Text("Voir vos commandes passées"),
             trailing: const Icon(Icons.arrow_forward_ios, size: 18),
             onTap: () {
-              Navigator.pushNamed(context,
-                  "/order"); // 🔥 Redirection vers la page des commandes
+              Navigator.pushNamed(context, "/order");
             },
           ),
-
-          /// 🔹 Section Aide
           ListTile(
             leading: const Icon(Icons.help_outline, color: Colors.green),
             title: const Text("Centre d'aide"),
@@ -80,10 +69,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Navigator.pushNamed(context, "/help");
             },
           ),
-
-          const Divider(), // 🔥 Séparateur visuel
-
-          /// 🔹 Bouton de déconnexion
+          const Divider(),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _logout,

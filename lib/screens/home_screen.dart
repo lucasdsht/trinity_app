@@ -28,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchUserOrders();
   }
 
-  /// 🔹 Vérifie si l'utilisateur a déjà commandé et génère des recommandations
   Future<void> _fetchUserOrders() async {
     try {
       String? token = await TokenService.getToken();
@@ -80,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// 🔹 Récupère tous les produits depuis l'API
   Future<void> _fetchProducts() async {
     try {
       String? token = await TokenService.getToken();
@@ -126,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// 🔹 Sélectionne des produits aléatoires si l'utilisateur n'a pas commandé
   void _selectRandomProducts() {
     if (products.isNotEmpty) {
       final random = Random();
@@ -138,7 +135,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// 🔹 Génère des recommandations basées sur les commandes passées
   void _generateProductRecommendations(List<dynamic> orderedProducts) {
     Set<String> brands = orderedProducts
         .map((p) => p["brand"]?.toString() ?? "")
@@ -174,7 +170,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 **Produits Conseillés**
           if (recommendedProducts.isNotEmpty) ...[
             const Text(
               "🔹 Produits Conseillés",
@@ -195,7 +190,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 🔹 Affichage des produits sous forme de grille (3 produits par ligne)
   Widget _buildProductGrid(List<dynamic> productList) {
     if (productList.isEmpty) {
       return const Center(
@@ -207,10 +201,10 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // 🔥 3 produits par ligne
+        crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.8, // 🔥 Ajuste la hauteur pour éviter l'overflow
+        childAspectRatio: 0.8,
       ),
       itemCount: productList.length,
       itemBuilder: (context, index) {
@@ -234,7 +228,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // ✅ Ajout de Expanded pour éviter l'overflow
                 Expanded(
                   child: ClipRRect(
                     borderRadius:
@@ -243,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         product["picture_url"], product["name"]),
                   ),
                 ),
-                // ✅ Empêcher le texte d'overflow avec `Flexible`
                 Padding(
                   padding: const EdgeInsets.all(6.0),
                   child: Text(
@@ -253,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
-                    maxLines: 2, // ✅ Empêche le texte de déborder
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -265,7 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 🔹 Gestion des images des produits
   Widget _getProductImage(String? imageUrl, String? productName) {
     if (imageUrl == null || imageUrl.isEmpty) {
       return Image.asset(

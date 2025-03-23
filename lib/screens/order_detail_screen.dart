@@ -14,8 +14,7 @@ class OrderDetailScreen extends StatefulWidget {
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   List<dynamic> orderItems = [];
-  Map<int, dynamic> productDetails =
-      {}; // Stocke les détails des produits par ID
+  Map<int, dynamic> productDetails = {};
   bool isLoading = true;
   String? errorMessage;
 
@@ -25,7 +24,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _fetchOrderDetails();
   }
 
-  /// 🔹 Récupère les détails des produits et les associe aux produits commandés
   Future<void> _fetchOrderDetails() async {
     try {
       String? token = await TokenService.getToken();
@@ -37,9 +35,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         return;
       }
 
-      // 1️⃣ **Récupérer les produits de la commande**
       final orderResponse = await Dio().get(
-        '$apiBaseUrl/invoices/items/${widget.order["id"]}', // Remplace par ton API
+        '$apiBaseUrl/invoices/items/${widget.order["id"]}',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       print("Réponse API Commandes : ${orderResponse.data}");
@@ -54,9 +51,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       List<dynamic> orderProducts = orderResponse.data;
 
-      // 2️⃣ **Récupérer la liste complète des produits**
       final productsResponse = await Dio().get(
-        '$apiBaseUrl/products/', // 🔥 Remplace par ton API
+        '$apiBaseUrl/products/',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
 
@@ -70,12 +66,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       List<dynamic> allProducts = productsResponse.data;
 
-      // 3️⃣ **Créer un dictionnaire {product_id: détails produit}**
       Map<int, dynamic> productMap = {
         for (var product in allProducts) product["id"]: product
       };
 
-      // 4️⃣ **Associer chaque produit commandé avec ses détails**
       setState(() {
         orderItems = orderProducts;
         productDetails = productMap;
@@ -89,7 +83,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  /// 🔹 Convertit le statut en couleur
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case "PAID":
@@ -110,7 +103,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// 🔹 **Titre de la page**
           const Padding(
             padding: EdgeInsets.only(bottom: 16.0),
             child: Text(
@@ -118,8 +110,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ),
-
-          /// 🔹 **Carte des détails de la commande**
           Card(
             elevation: 4,
             shape:
@@ -168,15 +158,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ),
           ),
-
-          /// 🔹 **Liste des produits commandés**
           const SizedBox(height: 20),
           const Text(
             "🛍 Produits commandés",
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : errorMessage != null
@@ -231,8 +218,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             },
                           ),
                         ),
-
-          /// 🔹 Bouton Retour
           const SizedBox(height: 20),
           Center(
             child: ElevatedButton.icon(

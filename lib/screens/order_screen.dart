@@ -44,14 +44,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
       }
 
       final response = await Dio().get(
-        '$apiBaseUrl/invoices/', // Remplace avec ton URL API correcte
+        '$apiBaseUrl/invoices/',
         queryParameters: {"user_id": userId},
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
       print("Réponse API Commandes : ${response.data}");
       if (response.statusCode == 200) {
         setState(() {
-          orders = response.data; // Liste des commandes
+          orders = response.data;
           isLoading = false;
         });
       } else {
@@ -68,7 +68,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
-  /// 🔹 Convertit le statut de paiement en couleur
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case "PAID":
@@ -125,16 +124,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ),
                             trailing:
                                 const Icon(Icons.arrow_forward_ios, size: 18),
-
-                            /// 🔹 **Ajout du onTap ici !**
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => NavigationBarWidget(
-                                      body: OrderDetailScreen(
-                                          order:
-                                              order)), // ✅ Envoie la commande
+                                      body: OrderDetailScreen(order: order)),
                                 ),
                               );
                             },

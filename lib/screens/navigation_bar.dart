@@ -11,7 +11,7 @@ class NavigationBarWidget extends StatefulWidget {
 }
 
 class _NavigationBarWidgetState extends State<NavigationBarWidget> {
-  int currentPageIndex = -1; // 🔥 -1 signifie aucune sélection par défaut
+  int currentPageIndex = -1;
 
   final List<String> routes = [
     "/product",
@@ -34,7 +34,7 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
       });
     } else {
       setState(() {
-        currentPageIndex = -1; // ✅ Désactive la sélection dans la NavBar
+        currentPageIndex = -1;
       });
     }
   }
@@ -57,7 +57,7 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
       Navigator.pushReplacementNamed(context, "/login");
     } else if (ModalRoute.of(context)?.settings.name != "/account") {
       setState(() {
-        currentPageIndex = -1; // ✅ Désactive la sélection
+        currentPageIndex = -1;
       });
       Navigator.pushNamedAndRemoveUntil(
           context, "/account", (route) => route.settings.name == "/home");
@@ -71,7 +71,7 @@ class _NavigationBarWidgetState extends State<NavigationBarWidget> {
       Navigator.pushReplacementNamed(context, "/login");
     } else if (ModalRoute.of(context)?.settings.name != "/setting") {
       setState(() {
-        currentPageIndex = -1; // ✅ Désactive la sélection
+        currentPageIndex = -1;
       });
       Navigator.pushNamedAndRemoveUntil(
           context, "/setting", (route) => route.settings.name == "/home");
