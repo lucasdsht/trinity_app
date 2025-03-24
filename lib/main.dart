@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trinity_app/screens/scanner_screen.dart';
 import 'api/token_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -44,7 +45,8 @@ class MyApp extends StatelessWidget {
         "/setting": (context) => NavigationBarWidget(
             body: const SettingScreen()), 
         "/cart": (context) =>
-            NavigationBarWidget(body: CartScreen()),
+            NavigationBarWidget(body: CartScreen()), // 🔥 Correction ici
+        "/scanner": (context) => const ScannerScreen(),
       },
     );
   }
