@@ -4,7 +4,7 @@ import 'token_service.dart';
 class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: "localhost:8000/",
+      baseUrl: "https://a73b-163-5-3-17.ngrok-free.app/",
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),

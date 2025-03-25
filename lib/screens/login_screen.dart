@@ -20,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await Dio().post(
-        'http://10.0.2.2:8000/auth/login',
+        'https://a73b-163-5-3-17.ngrok-free.app/auth/login',
         data: {
           "email": _emailController.text,
           "password": _passwordController.text,
