@@ -51,9 +51,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         final found = products.any((p) => p["barcode"] == barcode);
 
         if (!found) {
-          await dio.post('/product', data: {
+          await dio.post('/products', data: {
             "barcode": barcode,
-            "name": "Produit scanné automatiquement"
           });
         }
 
