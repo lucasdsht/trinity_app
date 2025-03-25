@@ -6,6 +6,10 @@ import 'navigation_bar.dart';
 import 'productdetail_screen.dart';
 
 class ProductScreen extends StatefulWidget {
+  final String? barcode;
+
+  ProductScreen({this.barcode});
+
   @override
   _ProductScreenState createState() => _ProductScreenState();
 }
@@ -13,7 +17,7 @@ class ProductScreen extends StatefulWidget {
 class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
   List<dynamic> _filteredProducts = [];
-  Set<int> _cartProducts = {}; // Stocke les produits déjà ajoutés
+  Set<int> _cartProducts = {};
   TextEditingController _searchController = TextEditingController();
   int? _invoiceId;
 
@@ -40,6 +44,31 @@ class _ProductScreenState extends State<ProductScreen> {
           _products = response.data;
           _filteredProducts = _products;
         });
+
+        // 🔍 Si un code-barres est fourni, chercher et rediriger
+        if (widget.barcode != null) {
+          final product = _products.firstWhere(
+            (p) => p["barcode"] == widget.barcode,
+            orElse: () => null,
+          );
+
+          if (product != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NavigationBarWidget(
+                    body: ProductDetailScreen(product: product),
+                  ),
+                ),
+              );
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Produit avec code ${widget.barcode} introuvable.")),
+            );
+          }
+        }
       }
     } catch (e) {
       print("Erreur de chargement des produits: $e");
@@ -58,22 +87,22 @@ class _ProductScreenState extends State<ProductScreen> {
 
       if (response.statusCode == 200) {
         List<dynamic> items = response.data;
-
-        // Vérifier si le produit est dans le panier avec une quantité >= 1
-        return items.any((item) => item["product_id"] == productId && item["quantity"] >= 1);
+        return items.any(
+            (item) => item["product_id"] == productId && item["quantity"] >= 1);
       }
     } catch (e) {
       print("Erreur lors de la vérification du produit dans le panier: $e");
     }
 
-    return false; // Retourne false en cas d'erreur
+    return false;
   }
 
   void _filterProducts() {
     String query = _searchController.text.toLowerCase();
     setState(() {
       _filteredProducts = _products
-          .where((product) => product["name"].toLowerCase().contains(query))
+          .where((product) =>
+              product["name"].toLowerCase().contains(query))
           .toList();
     });
   }
@@ -129,11 +158,12 @@ class _ProductScreenState extends State<ProductScreen> {
         _cartProducts.add(productId);
       });
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Produit ajouté au panier !")),
+      );
     } catch (e) {
       print("Erreur d'ajout au panier: $e");
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Produit ajouté au panier !")),);
   }
 
   @override
@@ -161,13 +191,13 @@ class _ProductScreenState extends State<ProductScreen> {
             child: ListTile(
               leading: product["picture_url"] != null
                   ? Image.network(
-                product["picture_url"],
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.broken_image),
-              )
+                      product["picture_url"],
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image),
+                    )
                   : const Icon(Icons.image),
               title: Text(product["name"]),
               subtitle: Text("${price.toStringAsFixed(2)}€"),
@@ -175,41 +205,41 @@ class _ProductScreenState extends State<ProductScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NavigationBarWidget(body:ProductDetailScreen(product: product)),
+                    builder: (context) => NavigationBarWidget(
+                      body: ProductDetailScreen(product: product),
+                    ),
                   ),
                 );
               },
               trailing: FutureBuilder<bool>(
-                  future: isProductInCart(productId, _invoiceId ?? 0),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator(); // Ou un autre widget de chargement
-                    }
-
-                    bool isInCart = snapshot.data ?? false;
-                    if (isInCart) {
-                      return IconButton(
-                        icon: const Icon(Icons.check_box, color: Colors.green),
-                        onPressed: () {
-                          // Gérer l'action si le produit est déjà dans le panier (ex: retirer)
-                        },
-                      );
-                    } else {
-                      return ElevatedButton(
-                        onPressed: () {
-                          _addToCart(productId, price);
-                        },
-                        child: const Icon(Icons.shopping_cart),
-                      );
-                    }
+                future: isProductInCart(productId, _invoiceId ?? 0),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
                   }
+
+                  bool isInCart = snapshot.data ?? false;
+                  if (isInCart) {
+                    return IconButton(
+                      icon:
+                          const Icon(Icons.check_box, color: Colors.green),
+                      onPressed: () {},
+                    );
+                  } else {
+                    return ElevatedButton(
+                      onPressed: () {
+                        _addToCart(productId, price);
+                      },
+                      child: const Icon(Icons.shopping_cart),
+                    );
+                  }
+                },
               ),
             ),
-
-
           );
         },
       ),
     );
   }
 }
+

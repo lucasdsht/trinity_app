@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:simple_barcode_scanner/simple_barcode_scanner.dart';
+import 'package:dio/dio.dart';
+import '../api/token_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -11,6 +13,12 @@ class ScannerScreen extends StatefulWidget {
 class _ScannerScreenState extends State<ScannerScreen> {
   String? barcode;
 
+  @override
+  void initState() {
+    super.initState();
+    _startScanner(); // démarre dès que l’écran est ouvert
+  }
+
   Future<void> _startScanner() async {
     final result = await Navigator.push(
       context,
@@ -21,16 +29,44 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     if (result != null && result != "-1") {
       setState(() => barcode = result);
-      Navigator.pushReplacementNamed(context, '/product/$result');
+      await _handleProduct(result);
     } else {
       Navigator.pop(context); // Retour si annulé
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _startScanner(); // démarre dès que l’écran est ouvert
+  Future<void> _handleProduct(String barcode) async {
+    final dio = Dio();
+    final token = await TokenService.getToken();
+
+    dio.options.baseUrl = 'http://10.0.2.2:8000/api'; // adapte selon ton env
+    dio.options.headers["Authorization"] = "Bearer $token";
+
+    try {
+      final response = await dio.get('/products');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> products = response.data;
+
+        final found = products.any((p) => p["barcode"] == barcode);
+
+        if (!found) {
+          await dio.post('/product', data: {
+            "barcode": barcode,
+            "name": "Produit scanné automatiquement"
+          });
+        }
+
+        // Redirige vers la page produit
+        Navigator.pushReplacementNamed(context, '/product/$barcode');
+      }
+    } catch (e) {
+      print("❌ Erreur : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Erreur lors du traitement du produit")),
+      );
+      Navigator.pop(context); // retour en cas d’erreur
+    }
   }
 
   @override

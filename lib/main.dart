@@ -13,7 +13,6 @@ import 'screens/order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await TokenService.removeToken();
   String? token = await TokenService.getToken();
 
   runApp(MyApp(initialRoute: token != null ? "/home" : "/login"));
@@ -26,28 +25,34 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Auth',
+      title: 'Trinity Shop',
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
-      home: NavigationBarWidget(
-        body: const HomeScreen(),
-      ),
       routes: {
         "/login": (context) => const LoginScreen(),
-        "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
         "/register": (context) => RegisterScreen(),
+        "/home": (context) => NavigationBarWidget(body: const HomeScreen()),
         "/product": (context) => NavigationBarWidget(body: ProductScreen()),
-        "/home": (context) =>
-            NavigationBarWidget(body: const HomeScreen()),
-        "/account": (context) => NavigationBarWidget(
-            body: const AccountScreen()),
-        "/setting": (context) => NavigationBarWidget(
-            body: const SettingScreen()), 
-        "/cart": (context) =>
-            NavigationBarWidget(body: CartScreen()), // 🔥 Correction ici
+        "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
+        "/account": (context) => NavigationBarWidget(body: const AccountScreen()),
+        "/setting": (context) => NavigationBarWidget(body: const SettingScreen()),
+        "/cart": (context) => NavigationBarWidget(body: CartScreen()),
         "/scanner": (context) => const ScannerScreen(),
+      },
+      // 🔁 Route dynamique pour /product/:barcode
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith("/product/")) {
+          final barcode = settings.name!.split("/product/").last;
+          return MaterialPageRoute(
+            builder: (_) => NavigationBarWidget(
+              body: ProductScreen(barcode: barcode),
+            ),
+          );
+        }
+        return null;
       },
     );
   }
 }
+
