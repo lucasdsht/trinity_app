@@ -39,11 +39,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
     final dio = Dio();
     final token = await TokenService.getToken();
 
-    dio.options.baseUrl = 'http://10.0.2.2:8000/api'; // adapte selon ton env
     dio.options.headers["Authorization"] = "Bearer $token";
 
     try {
-      final response = await dio.get('/products');
+      final response = await dio.get('$apiBaseUrl/products');
 
       if (response.statusCode == 200) {
         final List<dynamic> products = response.data;
