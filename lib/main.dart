@@ -13,6 +13,11 @@ import 'screens/order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🚧 For development: always start on login screen by removing the token
+  await TokenService.removeToken();
+
+  // ✅ After removal, check if a token exists
   String? token = await TokenService.getToken();
 
   runApp(MyApp(initialRoute: token != null ? "/home" : "/login"));
@@ -27,8 +32,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Trinity Shop',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
+      initialRoute: initialRoute,
       routes: {
         "/login": (context) => const LoginScreen(),
         "/register": (context) => RegisterScreen(),
@@ -40,16 +45,17 @@ class MyApp extends StatelessWidget {
         "/cart": (context) => NavigationBarWidget(body: CartScreen()),
         "/scanner": (context) => const ScannerScreen(),
       },
-      // 🔁 Route dynamique pour /product/:barcode
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith("/product/")) {
           final barcode = settings.name!.split("/product/").last;
+
           return MaterialPageRoute(
             builder: (_) => NavigationBarWidget(
               body: ProductScreen(barcode: barcode),
             ),
           );
         }
+
         return null;
       },
     );

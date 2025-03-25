@@ -8,7 +8,7 @@ import 'productdetail_screen.dart';
 class ProductScreen extends StatefulWidget {
   final String? barcode;
 
-  ProductScreen({this.barcode});
+  const ProductScreen({Key? key, this.barcode}) : super(key: key);
 
   @override
   _ProductScreenState createState() => _ProductScreenState();
@@ -18,8 +18,10 @@ class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
   List<dynamic> _filteredProducts = [];
   Set<int> _cartProducts = {};
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   int? _invoiceId;
+  bool _isLoading = true;
+  bool _showProductList = true;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _ProductScreenState extends State<ProductScreen> {
         setState(() {
           _products = response.data;
           _filteredProducts = _products;
+          _isLoading = false;
         });
 
         // 🔍 Si un code-barres est fourni, chercher et rediriger
@@ -63,10 +66,13 @@ class _ProductScreenState extends State<ProductScreen> {
                 ),
               );
             });
+            setState(() => _showProductList = false); // Empêche l'affichage de la liste
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Produit avec code ${widget.barcode} introuvable.")),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Produit avec code ${widget.barcode} introuvable.")),
+              );
+            });
           }
         }
       }
@@ -88,10 +94,11 @@ class _ProductScreenState extends State<ProductScreen> {
       if (response.statusCode == 200) {
         List<dynamic> items = response.data;
         return items.any(
-            (item) => item["product_id"] == productId && item["quantity"] >= 1);
+          (item) => item["product_id"] == productId && item["quantity"] >= 1,
+        );
       }
     } catch (e) {
-      print("Erreur lors de la vérification du produit dans le panier: $e");
+      print("Erreur vérification panier : $e");
     }
 
     return false;
@@ -101,8 +108,7 @@ class _ProductScreenState extends State<ProductScreen> {
     String query = _searchController.text.toLowerCase();
     setState(() {
       _filteredProducts = _products
-          .where((product) =>
-              product["name"].toLowerCase().contains(query))
+          .where((product) => product["name"].toLowerCase().contains(query))
           .toList();
     });
   }
@@ -133,7 +139,7 @@ class _ProductScreenState extends State<ProductScreen> {
         _invoiceId = postResponse.data["id"];
       }
     } catch (e) {
-      print("Erreur lors de la récupération de la facture: $e");
+      print("Erreur création ou récupération de facture : $e");
     }
   }
 
@@ -162,12 +168,22 @@ class _ProductScreenState extends State<ProductScreen> {
         const SnackBar(content: Text("Produit ajouté au panier !")),
       );
     } catch (e) {
-      print("Erreur d'ajout au panier: $e");
+      print("Erreur ajout panier : $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_showProductList) {
+      return const Scaffold(body: SizedBox.shrink()); // N'affiche rien si redirection
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -220,16 +236,10 @@ class _ProductScreenState extends State<ProductScreen> {
 
                   bool isInCart = snapshot.data ?? false;
                   if (isInCart) {
-                    return IconButton(
-                      icon:
-                          const Icon(Icons.check_box, color: Colors.green),
-                      onPressed: () {},
-                    );
+                    return const Icon(Icons.check_box, color: Colors.green);
                   } else {
                     return ElevatedButton(
-                      onPressed: () {
-                        _addToCart(productId, price);
-                      },
+                      onPressed: () => _addToCart(productId, price),
                       child: const Icon(Icons.shopping_cart),
                     );
                   }
