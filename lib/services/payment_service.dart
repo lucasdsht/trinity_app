@@ -2,21 +2,45 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class PaymentPage extends StatefulWidget {
-  @override
-  _PaymentPageState createState() => _PaymentPageState();
+/// Représente un article dans le panier
+class CartItem {
+  String name;
+  double price;
+  int quantity;
+
+  CartItem({
+    required this.name,
+    required this.price,
+    required this.quantity,
+  });
+
+  // Calcul du prix total pour cet article (prix * quantité)
+  double get totalPrice => price * quantity;
 }
 
-class _PaymentPageState extends State<PaymentPage> {
-  bool isLoading = false;
-  String paymentStatus = '';
+class PaymentPage {
+  /// Méthode pour calculer le montant total du panier
+  static double calculateTotal(List<CartItem> cartItems) {
+    double total = 0.0;
+    for (var item in cartItems) {
+      total += item.totalPrice; // Additionner le prix total de chaque article
+    }
+    return total; // Retourne le montant total
+  }
 
-  // Méthode pour effectuer le paiement
-  Future<void> createPayment() async {
-    setState(() {
-      isLoading = true;
-      paymentStatus = '';
-    });
+  /// Méthode pour effectuer le paiement
+  static Future<bool> createPayment({
+    required List<CartItem> cartItems, // Liste des articles dans le panier
+    String? firstName,
+    String? lastName,
+    String? address,
+    String? zipCode,
+    String? city,
+  }) async {
+    bool paymentStatus = false;
+
+    // Calculer le montant total du panier
+    double totalAmount = calculateTotal(cartItems);
 
     try {
       final response = await http.post(
@@ -24,51 +48,28 @@ class _PaymentPageState extends State<PaymentPage> {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({}), // Pas besoin de paramètres supplémentaires ici
+        body: jsonEncode({
+          'firstName': firstName,
+          'lastName': lastName,
+          'address': address,
+          'zipCode': zipCode,
+          'city': city,
+          'totalAmount': totalAmount, // Envoie le montant total calculé
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          paymentStatus = 'Paiement réussi !\n${data['paymentDetails']}';
-        });
+        // Si la réponse du backend est un succès, le paiement est réussi
+        paymentStatus = true;
       } else {
-        setState(() {
-          paymentStatus = 'Erreur lors du paiement. Veuillez réessayer.';
-        });
+        paymentStatus = false; // En cas d'échec du paiement
       }
     } catch (e) {
-      setState(() {
-        paymentStatus = 'Erreur réseau : $e';
-      });
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      print("Erreur réseau : $e");
+      paymentStatus = false; // En cas d'erreur réseau
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Paiement PayPal'),
-      ),
-      body: Center(
-        child: isLoading
-            ? CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: createPayment,
-                    child: Text('Effectuer le paiement'),
-                  ),
-                  SizedBox(height: 20),
-                  Text(paymentStatus),
-                ],
-              ),
-      ),
-    );
+    return paymentStatus; // Retourner l'état du paiement
   }
 }
