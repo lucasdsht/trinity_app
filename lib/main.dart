@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trinity_app/screens/scanner_screen.dart';
 import 'api/token_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -12,7 +13,11 @@ import 'screens/order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🚧 For development: always start on login screen by removing the token
   await TokenService.removeToken();
+
+  // ✅ After removal, check if a token exists
   String? token = await TokenService.getToken();
 
   runApp(MyApp(initialRoute: token != null ? "/home" : "/login"));
@@ -25,27 +30,35 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Auth',
+      title: 'Trinity Shop',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: initialRoute,
       debugShowCheckedModeBanner: false,
-      home: NavigationBarWidget(
-        body: const HomeScreen(),
-      ),
+      initialRoute: initialRoute,
       routes: {
         "/login": (context) => const LoginScreen(),
-        "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
         "/register": (context) => RegisterScreen(),
+        "/home": (context) => NavigationBarWidget(body: const HomeScreen()),
         "/product": (context) => NavigationBarWidget(body: ProductScreen()),
-        "/home": (context) =>
-            NavigationBarWidget(body: const HomeScreen()),
-        "/account": (context) => NavigationBarWidget(
-            body: const AccountScreen()),
-        "/setting": (context) => NavigationBarWidget(
-            body: const SettingScreen()), 
-        "/cart": (context) =>
-            NavigationBarWidget(body: CartScreen()),
+        "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
+        "/account": (context) => NavigationBarWidget(body: const AccountScreen()),
+        "/setting": (context) => NavigationBarWidget(body: const SettingScreen()),
+        "/cart": (context) => NavigationBarWidget(body: CartScreen()),
+        "/scanner": (context) => const ScannerScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith("/product/")) {
+          final barcode = settings.name!.split("/product/").last;
+
+          return MaterialPageRoute(
+            builder: (_) => NavigationBarWidget(
+              body: ProductScreen(barcode: barcode),
+            ),
+          );
+        }
+
+        return null;
       },
     );
   }
 }
+
