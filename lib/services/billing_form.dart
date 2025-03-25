@@ -1,6 +1,6 @@
  // View : le formulaire de facturation
  import 'package:flutter/material.dart';
-import 'lib/services/billing_viewmodel.dart';
+import 'billing_viewmodel.dart';
 
 class BillingForm extends StatefulWidget {
   const BillingForm({super.key});
