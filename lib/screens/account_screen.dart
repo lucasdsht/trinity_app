@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:trinity_app/api/api_service.dart';
 import '../api/token_service.dart';
 
@@ -11,6 +10,7 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
+  final ApiService apiService = ApiService();
   Map<String, dynamic>? userData;
   bool isLoading = true;
   bool isEditing = false;
@@ -44,12 +44,7 @@ class _AccountScreenState extends State<AccountScreen> {
         return;
       }
 
-      final response = await Dio().get(
-        "$apiBaseUrl/users/$userId",
-        options: Options(
-          headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
-        ),
-      );
+      final response = await apiService.get("/users/$userId");
 
       if (response.statusCode == 200) {
         setState(() {
@@ -75,7 +70,7 @@ class _AccountScreenState extends State<AccountScreen> {
       }
     } catch (e) {
       setState(() {
-        errorMessage = "Erreur de connexion : ${e.toString()}";
+        errorMessage = "Erreur de connexion : \${e.toString()}";
         isLoading = false;
       });
     }
@@ -88,22 +83,16 @@ class _AccountScreenState extends State<AccountScreen> {
       int? userId = await TokenService.getUserIdFromToken();
       if (userId == null) return;
 
-      final response = await Dio().put(
-        "$apiBaseUrl/users/$userId",
-        options: Options(
-          headers: {"Authorization": "Bearer ${await TokenService.getToken()}"},
-        ),
-        data: {
-          "first_name": firstNameController.text,
-          "last_name": lastNameController.text,
-          "email": emailController.text,
-          "phone_number": phoneController.text,
-          "billing_address": addressController.text,
-          "zip_code": zipController.text,
-          "city": cityController.text,
-          "country": countryController.text,
-        },
-      );
+      final response = await apiService.put("/users/$userId", {
+        "first_name": firstNameController.text,
+        "last_name": lastNameController.text,
+        "email": emailController.text,
+        "phone_number": phoneController.text,
+        "billing_address": addressController.text,
+        "zip_code": zipController.text,
+        "city": cityController.text,
+        "country": countryController.text,
+      });
 
       if (response.statusCode == 200) {
         setState(() {
@@ -126,7 +115,7 @@ class _AccountScreenState extends State<AccountScreen> {
       }
     } catch (e) {
       setState(() {
-        errorMessage = "Erreur de mise à jour : ${e.toString()}";
+        errorMessage = "Erreur de mise à jour : \${e.toString()}";
       });
     }
   }
