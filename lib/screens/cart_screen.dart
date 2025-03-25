@@ -204,14 +204,28 @@ class _CartScreenState extends State<CartScreen> {
                   return const SizedBox.shrink(); // Retourner un widget vide si la quantité est <= 0
                 }
               },
-            ),
+          ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
                   "Total: ${cartItems.fold<double>(0.0, (sum, item) => sum + (double.parse(item["price"].toString()) * item["quantity"]))
                     .toStringAsFixed(2)}€",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const AlertDialog(content: Text('Bouton cliqué!')),
+                    );
+                  },
+                  child: const Text('Accéder au payment'),
+                ),
+              ],
             ),
           ),
         ],
