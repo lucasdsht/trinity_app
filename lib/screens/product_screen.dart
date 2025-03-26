@@ -89,10 +89,15 @@ class _ProductScreenState extends State<ProductScreen> {
         '$apiBaseUrl/invoices/?user_id=${await TokenService.getUserIdFromToken()}',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-
       if (getResponse.statusCode == 200 && getResponse.data.isNotEmpty) {
-        _invoiceId = getResponse.data[0]["id"];
-      } else {
+      // Parcourir les factures pour trouver une facture avec le statut PENDING
+      bool foundPendingInvoice = false;
+      for (var invoice in getResponse.data) {
+        if (invoice['payment_status'] == 'PENDING') {
+          _invoiceId = invoice['id'];
+          return;
+        }
+      }
         final postResponse = await dio.post(
           '$apiBaseUrl/invoices/',
           data: {

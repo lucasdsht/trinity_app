@@ -74,18 +74,29 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> fetchCart() async {
     try {
       int? userId = await TokenService.getUserIdFromToken();
-      Response response =
-          await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
+      final response =
+      await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
+
       if (response.statusCode == 200 && response.data.isNotEmpty) {
-        setState(() {
-          cartId = response.data[0]["id"];
-        });
-        fetchCartItems();
+        final invoices = response.data as List;
+
+        final pendingInvoice = invoices.firstWhere(
+              (invoice) => invoice['payment_status'] == 'PENDING',
+          orElse: () => {},
+        );
+
+        if (pendingInvoice.isNotEmpty) {
+          setState(() {
+            cartId = pendingInvoice["id"];
+          });
+          fetchCartItems();
+        }
       }
     } catch (e) {
       print("Erreur lors de la récupération du panier: $e");
     }
   }
+
 
   Future<void> fetchCartItems() async {
     if (cartId == null) return;
