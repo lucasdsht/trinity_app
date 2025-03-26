@@ -9,6 +9,8 @@ import 'screens/setting_screen.dart';
 import 'screens/navigation_bar.dart';
 import 'screens/cart_screen.dart';
 import 'screens/order_screen.dart';
+import 'screens/paypal_success.dart';
+import 'screens/paypal_cancel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,14 +39,16 @@ class MyApp extends StatelessWidget {
         "/order": (context) => NavigationBarWidget(body: const OrdersScreen()),
         "/register": (context) => RegisterScreen(),
         "/product": (context) => NavigationBarWidget(body: ProductScreen()),
-        "/home": (context) =>
-            NavigationBarWidget(body: const HomeScreen()),
-        "/account": (context) => NavigationBarWidget(
-            body: const AccountScreen()),
-        "/setting": (context) => NavigationBarWidget(
-            body: const SettingScreen()), 
-        "/cart": (context) =>
-            NavigationBarWidget(body: CartScreen()),
+        "/home": (context) => NavigationBarWidget(body: const HomeScreen()),
+        "/account": (context) =>
+            NavigationBarWidget(body: const AccountScreen()),
+        "/setting": (context) =>
+            NavigationBarWidget(body: const SettingScreen()),
+        "/cart": (context) => NavigationBarWidget(body: CartScreen()),
+        '/paypal/success': (context) =>
+            NavigationBarWidget(body: PaypalSuccessPage(data: {})),
+        '/paypal/cancel': (context) =>
+            NavigationBarWidget(body: PaypalCancelPage()),
       },
     );
   }

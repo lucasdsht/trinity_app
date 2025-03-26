@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import '../api/token_service.dart';
+import 'dart:convert';
+import '../screens/paypal_checkout.dart';
+import '../screens/paypal_success.dart';
+import '../screens/navigation_bar.dart';
+
+final dio = Dio();
 
 class CartScreen extends StatefulWidget {
   @override
@@ -37,10 +43,39 @@ class _CartScreenState extends State<CartScreen> {
     await fetchCart();
   }
 
+  Future<Map<String, dynamic>?> getPendingInvoice() async {
+    try {
+      int? userId = await TokenService.getUserIdFromToken();
+
+      final response =
+          await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
+      final invoices = response.data as List;
+
+      final pendingInvoice = invoices.firstWhere(
+        (invoice) => invoice['payment_status'] == 'PENDING',
+        orElse: () => null,
+      );
+
+      if (pendingInvoice != null) {
+        return {
+          'id': pendingInvoice['id'],
+          'total_amount': pendingInvoice['total_amount'],
+        };
+      } else {
+        print("❌ Aucune facture PENDING trouvée");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Erreur lors de la récupération des factures : $e");
+      return null;
+    }
+  }
+
   Future<void> fetchCart() async {
     try {
       int? userId = await TokenService.getUserIdFromToken();
-      Response response = await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
+      Response response =
+          await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
       if (response.statusCode == 200 && response.data.isNotEmpty) {
         setState(() {
           cartId = response.data[0]["id"];
@@ -56,7 +91,8 @@ class _CartScreenState extends State<CartScreen> {
     if (cartId == null) return;
 
     try {
-      Response response = await apiService.get('$apiBaseUrl/invoices/items/$cartId');
+      Response response =
+          await apiService.get('$apiBaseUrl/invoices/items/$cartId');
       if (response.statusCode == 200) {
         List<dynamic> items = response.data;
         List<dynamic> detailedItems = [];
@@ -67,7 +103,8 @@ class _CartScreenState extends State<CartScreen> {
           if (!processedProductIds.contains(productId)) {
             processedProductIds.add(productId);
 
-            Response productResponse = await apiService.get('$apiBaseUrl/products/$productId');
+            Response productResponse =
+                await apiService.get('$apiBaseUrl/products/$productId');
             if (productResponse.statusCode == 200) {
               final productData = productResponse.data;
               detailedItems.add({
@@ -97,7 +134,8 @@ class _CartScreenState extends State<CartScreen> {
   void updateLocalCartItem(int itemId, int newQuantity) {
     setState(() {
       quantityChanges[itemId] = newQuantity;
-      cartItems.firstWhere((item) => item["item_id"] == itemId)["quantity"] = newQuantity;
+      cartItems.firstWhere((item) => item["item_id"] == itemId)["quantity"] =
+          newQuantity;
     });
   }
 
@@ -106,11 +144,13 @@ class _CartScreenState extends State<CartScreen> {
       int itemId = entry.key;
       int newQuantity = entry.value;
       var item = cartItems.firstWhere((item) => item["item_id"] == itemId);
-      await updateCartItem(itemId, newQuantity, item["invoice_id"], item["product_id"], item["price_per_unit"]);
+      await updateCartItem(itemId, newQuantity, item["invoice_id"],
+          item["product_id"], item["price_per_unit"]);
     }
   }
 
-  Future<void> updateCartItem(int itemId, int quantity, int invoiceId, int productId, double pricePerUnit) async {
+  Future<void> updateCartItem(int itemId, int quantity, int invoiceId,
+      int productId, double pricePerUnit) async {
     if (quantity < 1) {
       removeFromCart(itemId);
       return;
@@ -129,15 +169,131 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> removeFromCart(int itemId) async {
     try {
-      Response response = await apiService.delete('$apiBaseUrl/invoices/items/$itemId');
+      Response response =
+          await apiService.delete('$apiBaseUrl/invoices/items/$itemId');
       if (response.statusCode == 200) {
         setState(() {
           cartItems.removeWhere((item) => item["item_id"] == itemId);
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Produit supprimé !")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Produit supprimé !")));
       }
     } catch (e) {
       print("Erreur lors de la suppression du produit: $e");
+    }
+  }
+
+  Future<String?> createPaypalOrder() async {
+    try {
+      print(cartItems);
+      final response = await dio.post(
+        '$apiBaseUrl/paypal/orders',
+        options: Options(headers: {
+          'Content-Type': 'application/json',
+        }),
+        data: {"cart": cartItems},
+      );
+
+      // 🧠 Correction ici : décodage JSON si c'est une String
+      final data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      final List<dynamic> links = data['links'];
+
+      final approveLink = links.cast<Map<String, dynamic>>().firstWhere(
+            (link) => link['rel'] == 'approve',
+            orElse: () => <String, dynamic>{},
+          )['href'];
+
+      print("🧾 Order ID : ${data['id']}");
+      print("🔗 Approve link : $approveLink");
+
+      return approveLink;
+    } catch (e) {
+      print("Erreur lors de la création de la commande PayPal : $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> capturePaypalOrder(String orderId) async {
+    try {
+      final response = await dio.post(
+        '$apiBaseUrl/paypal/orders/$orderId/capture',
+        options: Options(headers: {
+          'Content-Type': 'application/json',
+        }),
+      );
+
+      final data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      print("✅ Paiement capturé : $data");
+      return data;
+    } catch (e) {
+      print("❌ Erreur capture PayPal : $e");
+      return null;
+    }
+  }
+
+  String? extractOrderId(String? approveUrl) {
+    if (approveUrl == null) return null;
+
+    final uri = Uri.parse(approveUrl);
+    final token = uri.queryParameters['token'];
+    return token; // PayPal place l'order_id ici
+  }
+
+  void launchPayment(BuildContext context) async {
+    final approveUrl = await createPaypalOrder();
+    final orderId = extractOrderId(approveUrl); // 👇 tu vas l’implémenter
+    if (approveUrl != null && orderId != null) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaypalCheckoutPage(approveUrl: approveUrl),
+        ),
+      );
+
+      if (result == true) {
+        final invoice = await getPendingInvoice();
+
+        if (invoice == null) {
+          print("❌ Impossible de lancer le paiement sans facture");
+          return;
+        }
+
+        final invoiceId = invoice['id'];
+        final amount = invoice['total_amount'];
+
+        if (invoiceId == null) {
+          print("❌ Aucune facture PENDING trouvée");
+          return;
+        } else {
+          try {
+            await apiService.put('$apiBaseUrl/invoices/$invoiceId', {
+              "total_amount": amount,
+              "payment_status": "PAID",
+            });
+          } catch (e) {
+            print("Erreur lors de la mise à jour de l'article: $e");
+          }
+        }
+        //
+        final capturedData = await capturePaypalOrder(orderId);
+        if (capturedData != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => NavigationBarWidget(
+                  body: PaypalSuccessPage(data: capturedData)),
+            ),
+          );
+        }
+      } else {
+        Navigator.pushNamed(context, '/paypal/cancel');
+      }
+    } else {
+      print("Échec de création de commande PayPal");
     }
   }
 
@@ -147,89 +303,107 @@ class _CartScreenState extends State<CartScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : cartItems.isEmpty
-          ? const Center(child: Text("Votre panier est vide."))
-          : Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: cartItems.length,
-              itemBuilder: (context, index) {
-                final product = cartItems[index];
-                if (product["quantity"] > 0) {
-                  return Card(
-                    elevation: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: ListTile(
-                      leading: product["picture_url"] != null
-                          ? Image.network(
-                        product["picture_url"],
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
-                      )
-                          : const Icon(Icons.image),
-                      title: Text(product["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(
-                        "Quantité: ${product["quantity"]}\nPrix unité : ${product["price"]}€ \nPrix total: ${(double.parse(product["price"].toString()) * product["quantity"]).toStringAsFixed(2)}€",
+              ? const Center(child: Text("Votre panier est vide."))
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: cartItems.length,
+                        itemBuilder: (context, index) {
+                          final product = cartItems[index];
+                          if (product["quantity"] > 0) {
+                            return Card(
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
+                              child: ListTile(
+                                leading: product["picture_url"] != null
+                                    ? Image.network(
+                                        product["picture_url"],
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(Icons.broken_image),
+                                      )
+                                    : const Icon(Icons.image),
+                                title: Text(product["name"],
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                  "Quantité: ${product["quantity"]}\nPrix unité : ${product["price"]}€ \nPrix total: ${(double.parse(product["price"].toString()) * product["quantity"]).toStringAsFixed(2)}€",
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () =>
+                                          removeFromCart(product["item_id"]),
+                                    ),
+                                    if (product["quantity"] > 1)
+                                      IconButton(
+                                        icon: const Icon(Icons.remove,
+                                            color: Colors.red),
+                                        onPressed: () => updateLocalCartItem(
+                                            product["item_id"],
+                                            product["quantity"] - 1),
+                                      ),
+                                    if (product["quantity"] <= 1)
+                                      const SizedBox(
+                                        width: 48, // La largeur de l'icône
+                                        child: Icon(Icons.remove,
+                                            color: Colors.grey),
+                                      ),
+                                    Text("${product["quantity"]}"),
+                                    IconButton(
+                                      icon: const Icon(Icons.add,
+                                          color: Colors.green),
+                                      onPressed: () => updateLocalCartItem(
+                                          product["item_id"],
+                                          product["quantity"] + 1),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          } else {
+                            return const SizedBox
+                                .shrink(); // Retourner un widget vide si la quantité est <= 0
+                          }
+                        },
                       ),
-
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => removeFromCart(product["item_id"]),
+                          Text(
+                            "Total: ${cartItems.fold<double>(0.0, (sum, item) => sum + (double.parse(item["price"].toString()) * item["quantity"])).toStringAsFixed(2)}€",
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          if (product["quantity"] > 1)
-                            IconButton(
-                              icon: const Icon(Icons.remove, color: Colors.red),
-                              onPressed: () => updateLocalCartItem(product["item_id"], product["quantity"] - 1),
-                            ),
-                          if(product["quantity"] <= 1)
-                            const SizedBox(
-                              width: 48, // La largeur de l'icône
-                              child: Icon(Icons.remove, color: Colors.grey),
-                            ),
-                          Text("${product["quantity"]}"),
-                          IconButton(
-                            icon: const Icon(Icons.add, color: Colors.green),
-                            onPressed: () => updateLocalCartItem(product["item_id"], product["quantity"] + 1),
+                          ElevatedButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  launchPayment(context);
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                },
+                              );
+                            },
+                            child: const Text('Accéder au payment'),
                           ),
                         ],
                       ),
                     ),
-                  );
-                } else {
-                  return const SizedBox.shrink(); // Retourner un widget vide si la quantité est <= 0
-                }
-              },
-          ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Total: ${cartItems.fold<double>(0.0, (sum, item) => sum + (double.parse(item["price"].toString()) * item["quantity"]))
-                    .toStringAsFixed(2)}€",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ],
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const AlertDialog(content: Text('Bouton cliqué!')),
-                    );
-                  },
-                  child: const Text('Accéder au payment'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

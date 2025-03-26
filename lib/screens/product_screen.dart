@@ -60,7 +60,8 @@ class _ProductScreenState extends State<ProductScreen> {
         List<dynamic> items = response.data;
 
         // Vérifier si le produit est dans le panier avec une quantité >= 1
-        return items.any((item) => item["product_id"] == productId && item["quantity"] >= 1);
+        return items.any(
+            (item) => item["product_id"] == productId && item["quantity"] >= 1);
       }
     } catch (e) {
       print("Erreur lors de la vérification du produit dans le panier: $e");
@@ -128,12 +129,12 @@ class _ProductScreenState extends State<ProductScreen> {
       setState(() {
         _cartProducts.add(productId);
       });
-
     } catch (e) {
       print("Erreur d'ajout au panier: $e");
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Produit ajouté au panier !")),);
+      const SnackBar(content: Text("Produit ajouté au panier !")),
+    );
   }
 
   @override
@@ -161,13 +162,13 @@ class _ProductScreenState extends State<ProductScreen> {
             child: ListTile(
               leading: product["picture_url"] != null
                   ? Image.network(
-                product["picture_url"],
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.broken_image),
-              )
+                      product["picture_url"],
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image),
+                    )
                   : const Icon(Icons.image),
               title: Text(product["name"]),
               subtitle: Text("${price.toStringAsFixed(2)}€"),
@@ -175,7 +176,8 @@ class _ProductScreenState extends State<ProductScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => NavigationBarWidget(body:ProductDetailScreen(product: product)),
+                    builder: (context) => NavigationBarWidget(
+                        body: ProductDetailScreen(product: product)),
                   ),
                 );
               },
@@ -202,11 +204,8 @@ class _ProductScreenState extends State<ProductScreen> {
                         child: const Icon(Icons.shopping_cart),
                       );
                     }
-                  }
-              ),
+                  }),
             ),
-
-
           );
         },
       ),
