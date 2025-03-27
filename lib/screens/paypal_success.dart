@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import './navigation_bar.dart';
+import './home_screen.dart';
 
 class PaypalSuccessPage extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -80,8 +82,15 @@ class PaypalSuccessPage extends StatelessWidget {
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed: () =>
-                    Navigator.popUntil(context, (route) => route.isFirst),
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            NavigationBarWidget(body: const HomeScreen())),
+                    (route) => false,
+                  );
+                },
                 child: const Text("Retour à l'accueil"),
               ),
             ],
