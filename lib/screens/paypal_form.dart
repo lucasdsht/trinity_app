@@ -1,22 +1,31 @@
 import 'package:flutter/material.dart';
 
-class BillingPage extends StatefulWidget {
+class BillingFormPage extends StatefulWidget {
   final List cartItems;
+  final Function(Map<String, dynamic>) onValidated;
 
-  const BillingPage({super.key, required this.cartItems});
+  const BillingFormPage({
+    super.key,
+    required this.cartItems,
+    required this.onValidated,
+  });
 
   @override
-  State<BillingPage> createState() => _BillingPageState();
+  State<BillingFormPage> createState() => _BillingFormPageState();
 }
 
-class _BillingPageState extends State<BillingPage> {
+class _BillingFormPageState extends State<BillingFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  String fullName = '';
-  String address = '';
-  String city = '';
-  String postalCode = '';
-  String phone = '';
+  final Map<String, String> billingInfo = {
+    "full_name": "",
+    "email": "",
+    "address": "",
+    "city": "",
+    "postal_code": "",
+    "country": "",
+    "phone": "",
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -28,54 +37,21 @@ class _BillingPageState extends State<BillingPage> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Nom complet'),
-                validator: (value) => value!.isEmpty ? 'Champ requis' : null,
-                onChanged: (value) => fullName = value,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Adresse'),
-                validator: (value) => value!.isEmpty ? 'Champ requis' : null,
-                onChanged: (value) => address = value,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Ville'),
-                validator: (value) => value!.isEmpty ? 'Champ requis' : null,
-                onChanged: (value) => city = value,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Code postal'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Champ requis' : null,
-                onChanged: (value) => postalCode = value,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Téléphone'),
-                keyboardType: TextInputType.phone,
-                validator: (value) => value!.isEmpty ? 'Champ requis' : null,
-                onChanged: (value) => phone = value,
-              ),
+              ..._buildTextField("Nom complet", "full_name"),
+              ..._buildTextField("Email", "email", TextInputType.emailAddress),
+              ..._buildTextField("Adresse", "address"),
+              ..._buildTextField("Ville", "city"),
+              ..._buildTextField(
+                  "Code postal", "postal_code", TextInputType.number),
+              ..._buildTextField("Pays", "country"),
+              ..._buildTextField("Téléphone", "phone", TextInputType.phone),
               const SizedBox(height: 30),
               ElevatedButton.icon(
                 icon: const Icon(Icons.payment),
                 label: const Text("Procéder au paiement"),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    launchPayment(
-                      context,
-                      widget.cartItems,
-                      billingInfo: {
-                        "full_name": fullName,
-                        "address": address,
-                        "city": city,
-                        "postal_code": postalCode,
-                        "phone": phone,
-                      },
-                    );
+                    widget.onValidated(billingInfo);
                   }
                 },
               ),
@@ -84,5 +60,18 @@ class _BillingPageState extends State<BillingPage> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildTextField(String label, String fieldKey,
+      [TextInputType? inputType]) {
+    return [
+      TextFormField(
+        keyboardType: inputType,
+        decoration: InputDecoration(labelText: label),
+        validator: (value) => value!.isEmpty ? 'Champ requis' : null,
+        onChanged: (value) => billingInfo[fieldKey] = value,
+      ),
+      const SizedBox(height: 10),
+    ];
   }
 }

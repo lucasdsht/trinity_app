@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../screens/paypal_checkout.dart';
 import '../screens/paypal_success.dart';
 import '../screens/navigation_bar.dart';
+import '../screens/paypal_form.dart';
 
 final dio = Dio();
 
@@ -75,13 +76,13 @@ class _CartScreenState extends State<CartScreen> {
     try {
       int? userId = await TokenService.getUserIdFromToken();
       final response =
-      await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
+          await apiService.get('$apiBaseUrl/invoices/?user_id=$userId');
 
       if (response.statusCode == 200 && response.data.isNotEmpty) {
         final invoices = response.data as List;
 
         final pendingInvoice = invoices.firstWhere(
-              (invoice) => invoice['payment_status'] == 'PENDING',
+          (invoice) => invoice['payment_status'] == 'PENDING',
           orElse: () => {},
         );
 
@@ -96,7 +97,6 @@ class _CartScreenState extends State<CartScreen> {
       print("Erreur lors de la récupération du panier: $e");
     }
   }
-
 
   Future<void> fetchCartItems() async {
     if (cartId == null) return;
@@ -194,23 +194,30 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  Future<String?> createPaypalOrder() async {
+  Future<String?> createPaypalOrder({
+    required int invoiceId,
+    required double amount,
+    required List cartItems,
+    required Map<String, dynamic> billingInfo,
+  }) async {
     try {
-      print(cartItems);
-      final response = await dio.post(
-        '$apiBaseUrl/paypal/orders',
-        options: Options(headers: {
+      final response = await apiService.postWithHeaders(
+        '/paypal/orders',
+        data: {
+          "invoice_id": invoiceId,
+          "amount": amount,
+          "cart": cartItems,
+          "billing_info": billingInfo,
+        },
+        headers: {
           'Content-Type': 'application/json',
-        }),
-        data: {"cart": cartItems},
+        },
       );
 
-      // 🧠 Correction ici : décodage JSON si c'est une String
       final data =
           response.data is String ? jsonDecode(response.data) : response.data;
 
       final List<dynamic> links = data['links'];
-
       final approveLink = links.cast<Map<String, dynamic>>().firstWhere(
             (link) => link['rel'] == 'approve',
             orElse: () => <String, dynamic>{},
@@ -228,13 +235,10 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<Map<String, dynamic>?> capturePaypalOrder(String orderId) async {
     try {
-      final response = await dio.post(
-        '$apiBaseUrl/paypal/orders/$orderId/capture',
-        options: Options(headers: {
-          'Content-Type': 'application/json',
-        }),
+      final response = await apiService.postWithHeaders(
+        '/paypal/orders/$orderId/capture',
+        headers: {'Content-Type': 'application/json'},
       );
-
       final data =
           response.data is String ? jsonDecode(response.data) : response.data;
 
@@ -254,9 +258,27 @@ class _CartScreenState extends State<CartScreen> {
     return token; // PayPal place l'order_id ici
   }
 
-  void launchPayment(BuildContext context) async {
-    final approveUrl = await createPaypalOrder();
-    final orderId = extractOrderId(approveUrl); // 👇 tu vas l’implémenter
+  void launchPayment(BuildContext context, Map<String, dynamic> billingInfo,
+      String montant) async {
+    final invoice = await getPendingInvoice();
+
+    if (invoice == null) {
+      print("❌ Impossible de lancer le paiement sans facture");
+      return;
+    }
+
+    final invoiceId = invoice['id'];
+    final amount = double.tryParse(montant) ?? invoice['total_amount'];
+
+    final approveUrl = await createPaypalOrder(
+      billingInfo: billingInfo,
+      amount: amount,
+      invoiceId: invoiceId,
+      cartItems: cartItems,
+    );
+
+    final orderId = extractOrderId(approveUrl);
+
     if (approveUrl != null && orderId != null) {
       final result = await Navigator.push(
         context,
@@ -266,30 +288,15 @@ class _CartScreenState extends State<CartScreen> {
       );
 
       if (result == true) {
-        final invoice = await getPendingInvoice();
-
-        if (invoice == null) {
-          print("❌ Impossible de lancer le paiement sans facture");
-          return;
+        try {
+          await apiService.put('$apiBaseUrl/invoices/$invoiceId', {
+            "total_amount": amount,
+            "payment_status": "PAID",
+          });
+        } catch (e) {
+          print("Erreur lors de la mise à jour de l'article: $e");
         }
 
-        final invoiceId = invoice['id'];
-        final amount = invoice['total_amount'];
-
-        if (invoiceId == null) {
-          print("❌ Aucune facture PENDING trouvée");
-          return;
-        } else {
-          try {
-            await apiService.put('$apiBaseUrl/invoices/$invoiceId', {
-              "total_amount": amount,
-              "payment_status": "PAID",
-            });
-          } catch (e) {
-            print("Erreur lors de la mise à jour de l'article: $e");
-          }
-        }
-        //
         final capturedData = await capturePaypalOrder(orderId);
         if (capturedData != null) {
           Navigator.push(
@@ -399,16 +406,30 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  launchPayment(context);
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                },
+                              final totalAmount = cartItems.fold<double>(
+                                0.0,
+                                (sum, item) =>
+                                    sum +
+                                    (double.parse(item["price"].toString()) *
+                                        item["quantity"]),
+                              );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BillingFormPage(
+                                    cartItems: cartItems,
+                                    onValidated: (billingInfo) {
+                                      launchPayment(
+                                        context,
+                                        billingInfo,
+                                        totalAmount.toStringAsFixed(2),
+                                      );
+                                    },
+                                  ),
+                                ),
                               );
                             },
-                            child: const Text('Accéder au payment'),
+                            child: const Text('Accéder au paiement'),
                           ),
                         ],
                       ),
