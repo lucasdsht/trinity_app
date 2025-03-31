@@ -123,10 +123,15 @@ class _ProductScreenState extends State<ProductScreen> {
         '$apiBaseUrl/invoices/?user_id=${await TokenService.getUserIdFromToken()}',
         options: Options(headers: {"Authorization": "Bearer $token"}),
       );
-
       if (getResponse.statusCode == 200 && getResponse.data.isNotEmpty) {
-        _invoiceId = getResponse.data[0]["id"];
-      } else {
+      // Parcourir les factures pour trouver une facture avec le statut PENDING
+      bool foundPendingInvoice = false;
+      for (var invoice in getResponse.data) {
+        if (invoice['payment_status'] == 'PENDING') {
+          _invoiceId = invoice['id'];
+          return;
+        }
+      }
         final postResponse = await dio.post(
           '$apiBaseUrl/invoices/',
           data: {
@@ -170,6 +175,10 @@ class _ProductScreenState extends State<ProductScreen> {
     } catch (e) {
       print("Erreur ajout panier : $e");
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Produit ajouté au panier !")),
+    );
+
   }
 
   @override
@@ -222,29 +231,35 @@ class _ProductScreenState extends State<ProductScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => NavigationBarWidget(
-                      body: ProductDetailScreen(product: product),
-                    ),
+                        body: ProductDetailScreen(product: product)),
                   ),
                 );
               },
               trailing: FutureBuilder<bool>(
-                future: isProductInCart(productId, _invoiceId ?? 0),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
 
-                  bool isInCart = snapshot.data ?? false;
-                  if (isInCart) {
-                    return const Icon(Icons.check_box, color: Colors.green);
-                  } else {
-                    return ElevatedButton(
-                      onPressed: () => _addToCart(productId, price),
-                      child: const Icon(Icons.shopping_cart),
-                    );
-                  }
-                },
-              ),
+                  future: isProductInCart(productId, _invoiceId ?? 0),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator(); // Ou un autre widget de chargement
+                    }
+
+                    bool isInCart = snapshot.data ?? false;
+                    if (isInCart) {
+                      return IconButton(
+                        icon: const Icon(Icons.check_box, color: Colors.green),
+                        onPressed: () {
+                          // Gérer l'action si le produit est déjà dans le panier (ex: retirer)
+                        },
+                      );
+                    } else {
+                      return ElevatedButton(
+                        onPressed: () {
+                          _addToCart(productId, price);
+                        },
+                        child: const Icon(Icons.shopping_cart),
+                      );
+                    }
+                  }),
             ),
           );
         },
@@ -252,4 +267,3 @@ class _ProductScreenState extends State<ProductScreen> {
     );
   }
 }
-

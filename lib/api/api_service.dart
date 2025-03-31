@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'token_service.dart';
 
-const String apiBaseUrl = "https://4965-163-5-3-17.ngrok-free.app";
+const String apiBaseUrl =
+    "https://6dc1-2a01-e0a-57-60c0-e7e0-e557-812f-9b19.ngrok-free.app"; // "http://10.0.2.2:8000";
+
 
 class ApiService {
   final Dio _dio = Dio(
@@ -28,6 +30,20 @@ class ApiService {
         return handler.next(e);
       },
     ));
+  }
+
+  Future<Response> postWithHeaders(
+    String path, {
+    Map<String, dynamic>? data,
+    Map<String, dynamic>? headers,
+  }) async {
+    return await _dio.post(
+      path,
+      data: data,
+      options: Options(
+        headers: headers ?? {},
+      ),
+    );
   }
 
   Future<Response> post(String path, Map<String, dynamic> data) async {
