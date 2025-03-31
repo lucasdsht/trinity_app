@@ -6,6 +6,10 @@ import 'navigation_bar.dart';
 import 'productdetail_screen.dart';
 
 class ProductScreen extends StatefulWidget {
+  final String? barcode;
+
+  const ProductScreen({Key? key, this.barcode}) : super(key: key);
+
   @override
   _ProductScreenState createState() => _ProductScreenState();
 }
@@ -13,9 +17,11 @@ class ProductScreen extends StatefulWidget {
 class _ProductScreenState extends State<ProductScreen> {
   List<dynamic> _products = [];
   List<dynamic> _filteredProducts = [];
-  Set<int> _cartProducts = {}; // Stocke les produits déjà ajoutés
-  TextEditingController _searchController = TextEditingController();
+  Set<int> _cartProducts = {};
+  final TextEditingController _searchController = TextEditingController();
   int? _invoiceId;
+  bool _isLoading = true;
+  bool _showProductList = true;
 
   @override
   void initState() {
@@ -39,7 +45,36 @@ class _ProductScreenState extends State<ProductScreen> {
         setState(() {
           _products = response.data;
           _filteredProducts = _products;
+          _isLoading = false;
         });
+
+        // 🔍 Si un code-barres est fourni, chercher et rediriger
+        if (widget.barcode != null) {
+          final product = _products.firstWhere(
+            (p) => p["barcode"] == widget.barcode,
+            orElse: () => null,
+          );
+
+          if (product != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NavigationBarWidget(
+                    body: ProductDetailScreen(product: product),
+                  ),
+                ),
+              );
+            });
+            setState(() => _showProductList = false); // Empêche l'affichage de la liste
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Produit avec code ${widget.barcode} introuvable.")),
+              );
+            });
+          }
+        }
       }
     } catch (e) {
       print("Erreur de chargement des produits: $e");
@@ -58,16 +93,15 @@ class _ProductScreenState extends State<ProductScreen> {
 
       if (response.statusCode == 200) {
         List<dynamic> items = response.data;
-
-        // Vérifier si le produit est dans le panier avec une quantité >= 1
         return items.any(
-            (item) => item["product_id"] == productId && item["quantity"] >= 1);
+          (item) => item["product_id"] == productId && item["quantity"] >= 1,
+        );
       }
     } catch (e) {
-      print("Erreur lors de la vérification du produit dans le panier: $e");
+      print("Erreur vérification panier : $e");
     }
 
-    return false; // Retourne false en cas d'erreur
+    return false;
   }
 
   void _filterProducts() {
@@ -110,7 +144,7 @@ class _ProductScreenState extends State<ProductScreen> {
         _invoiceId = postResponse.data["id"];
       }
     } catch (e) {
-      print("Erreur lors de la récupération de la facture: $e");
+      print("Erreur création ou récupération de facture : $e");
     }
   }
 
@@ -134,16 +168,31 @@ class _ProductScreenState extends State<ProductScreen> {
       setState(() {
         _cartProducts.add(productId);
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Produit ajouté au panier !")),
+      );
     } catch (e) {
-      print("Erreur d'ajout au panier: $e");
+      print("Erreur ajout panier : $e");
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Produit ajouté au panier !")),
     );
+
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_showProductList) {
+      return const Scaffold(body: SizedBox.shrink()); // N'affiche rien si redirection
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -187,6 +236,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 );
               },
               trailing: FutureBuilder<bool>(
+
                   future: isProductInCart(productId, _invoiceId ?? 0),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
